@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
@@ -18,14 +6,28 @@ const admin = require("firebase-admin");
 
 const app = express();
 app.use(bodyParser.json());
+
+// Root route
 app.get("/", (req, res) => {
   res.json({
     status: "ok",
     message: "Voter verification server running 🚀"
   });
 });
-// Firebase Admin initialization
-const serviceAccount = require("./firebaseServiceAccount.json");
+
+// Firebase Admin initialization using environment variables
+const serviceAccount = {
+  "type": "service_account",
+  "project_id": process.env.FIREBASE_PROJECT_ID,
+  "private_key_id": process.env.FIREBASE_PRIVATE_KEY_ID,
+  "private_key": process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+  "client_email": process.env.FIREBASE_CLIENT_EMAIL,
+  "client_id": process.env.FIREBASE_CLIENT_ID,
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": process.env.FIREBASE_CLIENT_X509_CERT_URL
+};
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -40,7 +42,7 @@ app.post("/verify-voter", async (req, res) => {
   }
 
   try {
-    // Example: Replace with actual verification logic
+    // Replace with actual verification logic
     const response = await axios.get(`https://verify.iebc.or.ke/?id=${nationalId}&year=${yearOfBirth}`);
     const $ = cheerio.load(response.data);
     const result = $("#result").text().trim();
@@ -63,8 +65,8 @@ app.post("/verify-voter", async (req, res) => {
   }
 });
 
-// Start server
-const PORT = 3000;
+// Start server on Render's assigned port
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
