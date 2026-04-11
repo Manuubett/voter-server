@@ -76,11 +76,11 @@ app.post('/pay', async (req, res) => {
   try {
     const payload = {
       amount: PRO_PRICE_KES,
-      phone_number: normalizedPhone,
+      mobile_number: normalizedPhone,
       email: email || PAYCENTA_EMAIL,
       reference: reference,
       description: 'Bett Officials Pro Tips Unlock',
-      ...(PAYCENTA_CODE && { code: PAYCENTA_CODE }),
+      code: PAYCENTA_CODE,
       callback_url: `${process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com'}/webhook/paycenta`
     };
 
