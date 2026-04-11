@@ -8,8 +8,6 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // ─── FIREBASE ADMIN INIT ───────────────────────────────────────────────────
-// Option A: FIREBASE_SERVICE_ACCOUNT = full JSON string (one line, no spaces)
-// Option B: individual env vars FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY
 let serviceAccount;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
@@ -30,7 +28,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     token_uri: 'https://oauth2.googleapis.com/token',
   };
 } else {
-  console.error('❌ No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT or FB_PROJECT_ID + FB_CLIENT_EMAIL + FB_PRIVATE_KEY');
+  console.error('❌ No Firebase credentials found.');
   process.exit(1);
 }
 
@@ -41,11 +39,13 @@ admin.initializeApp({
 const db = admin.database();
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-const PAYCENTA_API_KEY = process.env.PAYCENTA_API_KEY || 'hmp_SHkWZCN5hVe46NEZr7QA1gIfcHLJ7LeSjLFyELTw';
-const PAYCENTA_EMAIL = process.env.PAYCENTA_EMAIL || 'bettemanuel49@gmail.com';
-const PAYCENTA_CODE = process.env.PAYCENTA_CODE || '';
+const PAYCENTA_API_KEY  = process.env.PAYCENTA_API_KEY  || 'hmp_SHkWZCN5hVe46NEZr7QA1gIfcHLJ7LeSjLFyELTw';
+const PAYCENTA_EMAIL    = process.env.PAYCENTA_EMAIL    || 'bettemanuel49@gmail.com';
+const PAYCENTA_CODE     = process.env.PAYCENTA_CODE     || '';
+const WEBHOOK_SECRET    = process.env.WEBHOOK_SECRET    || '';
 const PAYCENTA_INIT_URL = 'https://paynecta.co.ke/api/v1/payment/initialize';
-const PRO_PRICE_KES = 1;
+const PRO_PRICE_KES     = Number(process.env.PRO_PRICE_KES) || 1;
+const BASE_URL          = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
 
 // ─── HEALTH CHECK ──────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
@@ -53,24 +53,14 @@ app.get('/', (req, res) => {
 });
 
 // ─── INITIATE STK PUSH ─────────────────────────────────────────────────────
-// POST /pay
-// Body: { phone: "0712345678" }
 app.post('/pay', async (req, res) => {
   const { phone, email } = req.body;
+  if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
 
-  if (!phone) {
-    return res.status(400).json({ success: false, error: 'Phone number required' });
-  }
-
-  // Normalize phone: strip leading 0, add 254
   let normalizedPhone = phone.toString().trim();
-  if (normalizedPhone.startsWith('0')) {
-    normalizedPhone = '254' + normalizedPhone.slice(1);
-  } else if (normalizedPhone.startsWith('+')) {
-    normalizedPhone = normalizedPhone.slice(1);
-  }
+  if (normalizedPhone.startsWith('0'))       normalizedPhone = '254' + normalizedPhone.slice(1);
+  else if (normalizedPhone.startsWith('+'))  normalizedPhone = normalizedPhone.slice(1);
 
-  // Generate unique reference
   const reference = `BETT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 
   try {
@@ -78,10 +68,10 @@ app.post('/pay', async (req, res) => {
       amount: PRO_PRICE_KES,
       mobile_number: normalizedPhone,
       email: email || PAYCENTA_EMAIL,
-      reference: reference,
+      reference,
       description: 'Bett Officials Pro Tips Unlock',
-      code: PAYCENTA_CODE,
-      callback_url: `${process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com'}/webhook/paycenta`
+      ...(PAYCENTA_CODE && { code: PAYCENTA_CODE }),
+      callback_url: `${BASE_URL}/webhook/paycenta`
     };
 
     const response = await axios.post(PAYCENTA_INIT_URL, payload, {
@@ -93,23 +83,20 @@ app.post('/pay', async (req, res) => {
       timeout: 15000
     });
 
-    const data = response.data;
-
-    // Store pending payment in Firebase so webhook can match it
     await db.ref(`proPayments/${reference}`).set({
       phone: normalizedPhone,
       amount: PRO_PRICE_KES,
       reference,
       status: 'pending',
       createdAt: Date.now(),
-      paycenta: data
+      paycenta: response.data
     });
 
     return res.json({
       success: true,
       reference,
       message: 'STK push sent. Enter M-Pesa PIN on your phone.',
-      data
+      data: response.data
     });
 
   } catch (err) {
@@ -121,108 +108,81 @@ app.post('/pay', async (req, res) => {
   }
 });
 
-// ─── CHECK PAYMENT STATUS (polled by frontend) ────────────────────────────
-// GET /pay/status/:reference
+// ─── CHECK PAYMENT STATUS ──────────────────────────────────────────────────
 app.get('/pay/status/:reference', async (req, res) => {
   const { reference } = req.params;
   try {
     const snap = await db.ref(`proPayments/${reference}`).get();
-    if (!snap.exists()) {
-      return res.status(404).json({ success: false, error: 'Reference not found' });
-    }
+    if (!snap.exists()) return res.status(404).json({ success: false, error: 'Reference not found' });
     const payment = snap.val();
-    return res.json({
-      success: true,
-      status: payment.status,
-      unlocked: payment.status === 'completed'
-    });
+    return res.json({ success: true, status: payment.status, unlocked: payment.status === 'completed' });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ─── PAYCENTA WEBHOOK ──────────────────────────────────────────────────────
-// POST /webhook/paycenta
-// Paycenta posts payment events here
 app.post('/webhook/paycenta', async (req, res) => {
+  if (WEBHOOK_SECRET) {
+    const incoming = req.headers['x-webhook-secret'] || req.headers['x-api-key'] || '';
+    if (incoming !== WEBHOOK_SECRET) {
+      console.warn('⚠️ Webhook unauthorized attempt');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+  }
+
   const event = req.body;
   console.log('Paycenta webhook received:', JSON.stringify(event));
-
-  // Acknowledge immediately
   res.status(200).json({ received: true });
 
   try {
-    const reference = event?.reference || event?.data?.reference || event?.payment?.reference;
-    const eventType = event?.event || event?.type || event?.status;
+    const reference =
+      event?.reference ||
+      event?.data?.reference ||
+      event?.payment?.reference ||
+      event?.data?.payment?.reference;
 
-    if (!reference) {
-      console.warn('Webhook missing reference:', event);
-      return;
-    }
+    const eventType =
+      event?.event ||
+      event?.type ||
+      event?.status ||
+      event?.data?.status ||
+      event?.data?.event;
+
+    if (!reference) { console.warn('Webhook missing reference:', event); return; }
 
     const snap = await db.ref(`proPayments/${reference}`).get();
-    if (!snap.exists()) {
-      console.warn('No payment record for reference:', reference);
-      return;
-    }
+    if (!snap.exists()) { console.warn('No payment record for ref:', reference); return; }
 
     const payment = snap.val();
 
-    // Handle payment completed
-    if (
-      eventType === 'payment.completed' ||
-      eventType === 'Payment Completed' ||
-      eventType === 'completed' ||
-      event?.status === 'success' ||
-      event?.status === 'COMPLETE'
-    ) {
-      // Update payment status
-      await db.ref(`proPayments/${reference}`).update({
-        status: 'completed',
-        completedAt: Date.now(),
-        webhookPayload: event
-      });
+    const isCompleted =
+      ['payment.completed','Payment Completed','completed','success','COMPLETE','SUCCESS']
+        .includes(eventType);
+    const isFailed =
+      ['payment.failed','Payment Failed','failed','FAILED','CANCELLED','cancelled']
+        .includes(eventType);
 
-      // Store phone as a pro subscriber
-      const phone = payment.phone;
-      const safePhone = phone.replace(/[^0-9]/g, '');
+    if (isCompleted) {
+      await db.ref(`proPayments/${reference}`).update({
+        status: 'completed', completedAt: Date.now(), webhookPayload: event
+      });
+      const safePhone = payment.phone.replace(/[^0-9]/g, '');
       await db.ref(`proSubscribers/${safePhone}`).set({
-        phone,
-        reference,
-        unlockedAt: Date.now(),
-        amount: payment.amount
+        phone: payment.phone, reference,
+        unlockedAt: Date.now(), amount: payment.amount
       });
+      console.log(`✅ Pro unlocked — phone: ${payment.phone}, ref: ${reference}`);
 
-      console.log(`✅ Pro unlocked for phone: ${phone}, ref: ${reference}`);
-
-    } else if (
-      eventType === 'payment.failed' ||
-      eventType === 'Payment Failed' ||
-      eventType === 'failed' ||
-      event?.status === 'FAILED'
-    ) {
+    } else if (isFailed) {
       await db.ref(`proPayments/${reference}`).update({
-        status: 'failed',
-        failedAt: Date.now(),
-        webhookPayload: event
+        status: 'failed', failedAt: Date.now(), webhookPayload: event
       });
-      console.log(`❌ Payment failed for ref: ${reference}`);
-
-    } else if (
-      eventType === 'payment.pending' ||
-      eventType === 'Payment Pending' ||
-      eventType === 'pending'
-    ) {
-      await db.ref(`proPayments/${reference}`).update({
-        status: 'pending',
-        webhookPayload: event
-      });
+      console.log(`❌ Payment failed — ref: ${reference}`);
 
     } else {
-      // Log unknown events
       await db.ref(`proPayments/${reference}`).update({
-        lastEvent: eventType,
-        webhookPayload: event
+        lastEvent: eventType, webhookPayload: event
       });
       console.log(`ℹ️ Unhandled event type: ${eventType}`);
     }
@@ -232,17 +192,12 @@ app.post('/webhook/paycenta', async (req, res) => {
   }
 });
 
-// ─── VERIFY PRO BY PHONE (optional - frontend can call this on login) ──────
-// GET /pro/check/:phone
+// ─── VERIFY PRO BY PHONE ───────────────────────────────────────────────────
 app.get('/pro/check/:phone', async (req, res) => {
-  let phone = req.params.phone.replace(/[^0-9]/g, '');
+  const phone = req.params.phone.replace(/[^0-9]/g, '');
   try {
     const snap = await db.ref(`proSubscribers/${phone}`).get();
-    return res.json({
-      success: true,
-      isPro: snap.exists(),
-      data: snap.exists() ? snap.val() : null
-    });
+    return res.json({ success: true, isPro: snap.exists(), data: snap.exists() ? snap.val() : null });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
