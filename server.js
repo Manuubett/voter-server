@@ -83,7 +83,8 @@ app.post('/pay', async (req, res) => {
 
     const response = await axios.post(PAYCENTA_INIT_URL, payload, {
       headers: {
-        'Authorization': `Bearer ${PAYCENTA_API_KEY}`,
+        'X-API-Key': PAYCENTA_API_KEY,
+        'X-User-Email': 'bettemanuel49@gmail.com',
         'Content-Type': 'application/json'
       },
       timeout: 15000
