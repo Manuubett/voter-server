@@ -45,7 +45,7 @@ const PAYCENTA_API_KEY = process.env.PAYCENTA_API_KEY || 'hmp_SHkWZCN5hVe46NEZr7
 const PAYCENTA_EMAIL = process.env.PAYCENTA_EMAIL || 'bettemanuel49@gmail.com';
 const PAYCENTA_CODE = process.env.PAYCENTA_CODE || '';
 const PAYCENTA_INIT_URL = 'https://paynecta.co.ke/api/v1/payment/initialize';
-const PRO_PRICE_KES = 49;
+const PRO_PRICE_KES = 1;
 
 // ─── HEALTH CHECK ──────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
