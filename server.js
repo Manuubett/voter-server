@@ -8,8 +8,32 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // ─── FIREBASE ADMIN INIT ───────────────────────────────────────────────────
-// Set FIREBASE_SERVICE_ACCOUNT env var on Render (paste full JSON as one line)
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+// Option A: FIREBASE_SERVICE_ACCOUNT = full JSON string (one line, no spaces)
+// Option B: individual env vars FB_PROJECT_ID, FB_CLIENT_EMAIL, FB_PRIVATE_KEY
+let serviceAccount;
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (e) {
+    console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', e.message);
+    process.exit(1);
+  }
+} else if (process.env.FB_PROJECT_ID) {
+  serviceAccount = {
+    type: 'service_account',
+    project_id: process.env.FB_PROJECT_ID,
+    private_key_id: process.env.FB_PRIVATE_KEY_ID || '',
+    private_key: (process.env.FB_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    client_email: process.env.FB_CLIENT_EMAIL,
+    client_id: process.env.FB_CLIENT_ID || '',
+    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+    token_uri: 'https://oauth2.googleapis.com/token',
+  };
+} else {
+  console.error('❌ No Firebase credentials found. Set FIREBASE_SERVICE_ACCOUNT or FB_PROJECT_ID + FB_CLIENT_EMAIL + FB_PRIVATE_KEY');
+  process.exit(1);
+}
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://community-caa4a-default-rtdb.firebaseio.com'
