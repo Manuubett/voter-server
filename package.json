@@ -1,29 +1,22 @@
 {
-  "name": "voter-server",
+  "name": "bett-officials-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Bett Officials – Paycenta STK push + webhook + Firebase pro unlock",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/manuubett/voter-server.git"
+  "engines": {
+    "node": ">=18.0.0"
   },
-  "bugs": {
-    "url": "https://github.com/manuubett/voter-server/issues"
-  },
-  "homepage": "https://github.com/manuubett/voter-server#readme",
   "dependencies": {
-    "axios": "^1.13.4",
-    "body-parser": "^2.2.2",
-    "cheerio": "^1.2.0",
-    "express": "^5.2.1",
-    "firebase-admin": "^13.6.0"
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }
