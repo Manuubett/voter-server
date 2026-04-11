@@ -42,6 +42,8 @@ const db = admin.database();
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const PAYCENTA_API_KEY = process.env.PAYCENTA_API_KEY || 'hmp_SHkWZCN5hVe46NEZr7QA1gIfcHLJ7LeSjLFyELTw';
+const PAYCENTA_EMAIL = process.env.PAYCENTA_EMAIL || 'bettemanuel49@gmail.com';
+const PAYCENTA_CODE = process.env.PAYCENTA_CODE || '';
 const PAYCENTA_INIT_URL = 'https://paynecta.co.ke/api/v1/payment/initialize';
 const PRO_PRICE_KES = 49;
 
@@ -75,16 +77,17 @@ app.post('/pay', async (req, res) => {
     const payload = {
       amount: PRO_PRICE_KES,
       phone_number: normalizedPhone,
-      email: email || 'bettemanuel49@gmail.com',
+      email: email || PAYCENTA_EMAIL,
       reference: reference,
       description: 'Bett Officials Pro Tips Unlock',
+      ...(PAYCENTA_CODE && { code: PAYCENTA_CODE }),
       callback_url: `${process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com'}/webhook/paycenta`
     };
 
     const response = await axios.post(PAYCENTA_INIT_URL, payload, {
       headers: {
         'X-API-Key': PAYCENTA_API_KEY,
-        'X-User-Email': 'bettemanuel49@gmail.com',
+        'X-User-Email': PAYCENTA_EMAIL,
         'Content-Type': 'application/json'
       },
       timeout: 15000
