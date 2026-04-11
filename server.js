@@ -54,7 +54,7 @@ app.get('/', (req, res) => {
 // POST /pay
 // Body: { phone: "0712345678" }
 app.post('/pay', async (req, res) => {
-  const { phone } = req.body;
+  const { phone, email } = req.body;
 
   if (!phone) {
     return res.status(400).json({ success: false, error: 'Phone number required' });
@@ -75,9 +75,10 @@ app.post('/pay', async (req, res) => {
     const payload = {
       amount: PRO_PRICE_KES,
       phone_number: normalizedPhone,
+      email: email || 'bettemanuel49@gmail.com',
       reference: reference,
       description: 'Bett Officials Pro Tips Unlock',
-      callback_url: `${process.env.SERVER_URL || 'https://your-render-app.onrender.com'}/webhook/paycenta`
+      callback_url: `${process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com'}/webhook/paycenta`
     };
 
     const response = await axios.post(PAYCENTA_INIT_URL, payload, {
