@@ -12,14 +12,37 @@ if (
   process.env.FIREBASE_PRIVATE_KEY
 ) {
   try {
+    // Robustly parse the private key regardless of how Render stores it:
+    // - Some envs store literal \n as \\n — replace them
+    // - Some strip the header/footer — we re-add if missing
+    // - Some add extra quotes — we strip them
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+    // Strip surrounding quotes if Render wrapped the value in them
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+
+    // Replace literal \n with real newlines
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
+    // Ensure proper header/footer (in case they got stripped)
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
+    }
+    if (!privateKey.includes('-----END PRIVATE KEY-----')) {
+      privateKey = privateKey + '\n-----END PRIVATE KEY-----\n';
+    }
+
+    console.log('[Firebase] Key starts with:', privateKey.substring(0, 40));
+    console.log('[Firebase] Key ends with:', privateKey.substring(privateKey.length - 40));
+
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId:   process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // Handle both literal \n and real newlines in the env var
-        privateKey:  process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        privateKey,
       }),
-      // No databaseURL — Firestore only. Avoids @firebase/database WARNING spam.
     });
     db = admin.firestore();
     console.log('✅ Firebase (Firestore) connected');
@@ -64,7 +87,7 @@ app.use(express.json());
 const API_KEY       = process.env.PAYNECTA_API_KEY;
 const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
 const MERCHANT_CODE = process.env.PAYNECTA_CODE;
-const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 1; // FIX: default 49, not 1
+const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49; // FIX: default 49, not 1
 const BASE_URL      = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
 const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
 
