@@ -4,59 +4,77 @@ const cors    = require('cors');
 const axios   = require('axios');
 const admin   = require('firebase-admin');
 
+// ── Firebase private key sanitizer ───────────────────────────────────────────
+function sanitizePrivateKey(raw) {
+  if (!raw) return null;
+  let key = raw;
+
+  // 1. Trim outer whitespace
+  key = key.trim();
+
+  // 2. Strip surrounding quotes Render/env tools sometimes add
+  key = key.replace(/^["'`]+|["'`]+$/g, '').trim();
+
+  // 3. Replace literal \n with real newlines
+  key = key.replace(/\\n/g, '\n');
+
+  // 4. Ensure PEM header/footer exist
+  if (!key.includes('-----BEGIN PRIVATE KEY-----')) {
+    key = '-----BEGIN PRIVATE KEY-----\n' + key;
+  }
+  if (!key.includes('-----END PRIVATE KEY-----')) {
+    key = key.trimEnd() + '\n-----END PRIVATE KEY-----\n';
+  }
+
+  // 5. Ensure newline immediately after header and before footer
+  key = key
+    .replace(/-----BEGIN PRIVATE KEY-----\s*/g, '-----BEGIN PRIVATE KEY-----\n')
+    .replace(/\s*-----END PRIVATE KEY-----/g,   '\n-----END PRIVATE KEY-----')
+    .replace(/\n{3,}/g, '\n'); // collapse triple+ newlines
+
+  return key;
+}
+
 // ── Firebase init ─────────────────────────────────────────────────────────────
 let db;
-if (
-  process.env.FIREBASE_PROJECT_ID &&
-  process.env.FIREBASE_CLIENT_EMAIL &&
-  process.env.FIREBASE_PRIVATE_KEY
-) {
+const {
+  FIREBASE_PROJECT_ID,
+  FIREBASE_CLIENT_EMAIL,
+  FIREBASE_PRIVATE_KEY,
+} = process.env;
+
+if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
   try {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const privateKey = sanitizePrivateKey(FIREBASE_PRIVATE_KEY);
 
-    // 1. Trim whitespace
-    privateKey = privateKey.trim();
-
-    // 2. Strip surrounding quotes (single or double) Render may wrap the value in
-    privateKey = privateKey.replace(/^["']+|["']+$/g, '').trim();
-
-    // 3. Replace literal \n sequences with real newlines
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
-    // 4. Ensure proper PEM structure
-    if (!privateKey.startsWith('-----BEGIN PRIVATE KEY-----')) {
-      privateKey = '-----BEGIN PRIVATE KEY-----\n' + privateKey;
-    }
-    if (!privateKey.trimEnd().endsWith('-----END PRIVATE KEY-----')) {
-      privateKey = privateKey.trimEnd() + '\n-----END PRIVATE KEY-----\n';
-    }
-
-    console.log('[Firebase] Key check — starts:', JSON.stringify(privateKey.substring(0, 50)));
-    console.log('[Firebase] Key check — ends:  ', JSON.stringify(privateKey.substring(privateKey.length - 50)));
+    console.log('[Firebase] Project:    ', FIREBASE_PROJECT_ID);
+    console.log('[Firebase] Email:      ', FIREBASE_CLIENT_EMAIL);
+    console.log('[Firebase] Key starts: ', JSON.stringify(privateKey.substring(0, 40)));
+    console.log('[Firebase] Key ends:   ', JSON.stringify(privateKey.slice(-40)));
 
     admin.initializeApp({
       credential: admin.credential.cert({
-        projectId:   process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        projectId:   FIREBASE_PROJECT_ID,
+        clientEmail: FIREBASE_CLIENT_EMAIL,
         privateKey,
       }),
     });
+
     db = admin.firestore();
     console.log('✅ Firebase (Firestore) connected');
   } catch (err) {
     console.error('❌ Firebase init failed:', err.message);
+    console.error('   Stack:', err.stack);
   }
 } else {
-  console.warn('⚠️  Firebase env vars not set — payment routes will not persist data');
-  console.warn('   Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
+  const missing = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']
+    .filter(k => !process.env[k]);
+  console.warn('⚠️  Firebase not configured — missing:', missing.join(', '));
 }
 
 // ── Telegram notifier ─────────────────────────────────────────────────────────
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
-
-if (!TELEGRAM_BOT_TOKEN) console.warn('⚠️  TELEGRAM_BOT_TOKEN not set — notifications disabled');
-if (!TELEGRAM_CHAT_ID)   console.warn('⚠️  TELEGRAM_CHAT_ID not set — notifications disabled');
 
 async function sendTelegram(text) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
@@ -66,7 +84,7 @@ async function sendTelegram(text) {
       { chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true },
       { timeout: 8000 }
     );
-    if (res.data?.ok) console.log('[Telegram] ✅ Sent — message_id:', res.data.result?.message_id);
+    if (res.data?.ok) console.log('[Telegram] ✅ Sent');
     else console.warn('[Telegram] ⚠️  Not ok:', JSON.stringify(res.data));
   } catch (err) {
     console.error('[Telegram] ❌ Failed:', err.response?.data || err.message);
@@ -84,8 +102,8 @@ app.use(express.json());
 const API_KEY       = process.env.PAYNECTA_API_KEY;
 const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
 const MERCHANT_CODE = process.env.PAYNECTA_CODE;
-const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49; // FIX: default 49, not 1
-const BASE_URL      = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
+const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49;
+const SERVER_BASE   = process.env.SERVER_URL || 'https://your-app.onrender.com';
 const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
 
 if (!API_KEY)       console.error('❌ PAYNECTA_API_KEY not set');
@@ -100,9 +118,9 @@ const paynectaHeaders = () => ({
 
 function normalisePhone(phone) {
   let p = phone.toString().replace(/\D/g, '');
-  if (p.startsWith('0'))                        p = '254' + p.slice(1);
-  if (p.startsWith('7') || p.startsWith('1'))   p = '254' + p; // bare 7XX / 1XX
-  if (!p.startsWith('254'))                     p = '254' + p;
+  if (p.startsWith('0'))                       p = '254' + p.slice(1);
+  if (p.startsWith('7') || p.startsWith('1'))  p = '254' + p;
+  if (!p.startsWith('254'))                    p = '254' + p;
   return p;
 }
 
@@ -114,10 +132,31 @@ app.get('/', (req, res) => {
     time:     new Date().toISOString(),
     firebase: db ? 'connected' : 'not configured',
     paynecta: API_KEY ? 'configured' : 'missing key',
+    price:    `KES ${PRO_PRICE}`,
   });
 });
 
-// ── Test Paynecta API key ─────────────────────────────────────────────────────
+// ── Debug Firebase key — safe, never exposes actual key value ─────────────────
+// Visit GET /api/debug-firebase on Render to diagnose key issues
+app.get('/api/debug-firebase', (req, res) => {
+  const raw       = process.env.FIREBASE_PRIVATE_KEY || '';
+  const sanitized = sanitizePrivateKey(raw) || '';
+  res.json({
+    firebase_connected:      !!db,
+    project_id_set:          !!FIREBASE_PROJECT_ID,
+    client_email_set:        !!FIREBASE_CLIENT_EMAIL,
+    private_key_raw_length:  raw.length,
+    private_key_san_length:  sanitized.length,
+    has_begin_header:        sanitized.includes('-----BEGIN PRIVATE KEY-----'),
+    has_end_footer:          sanitized.includes('-----END PRIVATE KEY-----'),
+    raw_starts_with:         JSON.stringify(raw.substring(0, 10)),
+    sanitized_starts_with:   JSON.stringify(sanitized.substring(0, 40)),
+    sanitized_ends_with:     JSON.stringify(sanitized.slice(-40)),
+    newline_count:           (sanitized.match(/\n/g) || []).length,
+  });
+});
+
+// ── Test Paynecta key ─────────────────────────────────────────────────────────
 app.get('/api/test', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ success: false, message: 'PAYNECTA_API_KEY not set' });
   try {
@@ -130,7 +169,7 @@ app.get('/api/test', async (req, res) => {
     res.status(ok ? 200 : 400).json({
       success: ok,
       status:  response.status,
-      message: ok ? 'API Key valid ✅' : 'API Key rejected ❌',
+      message: ok ? 'Paynecta API Key valid ✅' : 'Paynecta API Key rejected ❌',
       data:    response.data,
     });
   } catch (err) {
@@ -138,8 +177,7 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-// ── Initiate STK push ─────────────────────────────────────────────────────────
-// POST /pay  { phone: "0712345678" }
+// ── POST /pay — Initiate STK Push ─────────────────────────────────────────────
 app.post('/pay', async (req, res) => {
   const { phone } = req.body;
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
@@ -147,57 +185,52 @@ app.post('/pay', async (req, res) => {
   if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE) {
     return res.status(500).json({
       success: false,
-      error: 'Server misconfigured — set PAYNECTA_API_KEY, PAYNECTA_EMAIL, PAYNECTA_CODE in Render env vars',
+      error: 'Server misconfigured — PAYNECTA_API_KEY, PAYNECTA_EMAIL, PAYNECTA_CODE must be set',
     });
   }
 
-  // Reject obviously invalid phones before hitting Paynecta
   const digits = phone.replace(/\D/g, '');
   if (digits.length < 9 || digits.length > 13) {
     return res.status(400).json({ success: false, error: 'Invalid phone number format' });
   }
 
-  const mobile    = normalisePhone(phone);
-  const reference = `BETT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+  const mobile = normalisePhone(phone);
 
   try {
     const payload = {
       code:          MERCHANT_CODE,
       mobile_number: mobile,
       amount:        PRO_PRICE,
-      reference,
       description:   'Bett Officials Pro Tips Unlock',
-      callback_url:  `${BASE_URL}/api/webhook`,
+      callback_url:  `${SERVER_BASE}/api/webhook`,
     };
 
-    console.log('[STK] Sending:', { mobile, amount: PRO_PRICE, reference });
+    console.log('[STK] Sending:', { mobile, amount: PRO_PRICE });
 
     const response = await axios.post(`${PAYNECTA_URL}/payment/initialize`, payload, {
       headers: paynectaHeaders(),
-      timeout: 15000, // don't hang forever on Render
+      timeout: 15000,
     });
 
-    // Robustly extract txRef — handle all known Paynecta response shapes
+    // Extract txRef — handle all known Paynecta response shapes
     const txRef =
       response.data?.data?.transaction_reference ||
       response.data?.data?.CheckoutRequestID     ||
       response.data?.transaction_reference       ||
       response.data?.reference                   ||
-      reference; // fallback to our own ref
+      `BETT-${Date.now()}`;
 
     if (db) {
       await db.collection('proPayments').doc(txRef).set({
         phone:     mobile,
         amount:    PRO_PRICE,
-        reference,
         txRef,
         status:    'pending',
         createdAt: new Date().toISOString(),
-        paynecta:  response.data,
       });
     }
 
-    console.log('[STK] ✅ Success — txRef:', txRef);
+    console.log('[STK] ✅ — txRef:', txRef);
 
     sendTelegram(
       `📱 <b>STK PUSH SENT</b>\n\n` +
@@ -211,7 +244,6 @@ app.post('/pay', async (req, res) => {
       success:   true,
       reference: txRef,
       message:   'STK push sent. Enter M-Pesa PIN on your phone.',
-      data:      response.data,
     });
 
   } catch (err) {
@@ -224,24 +256,17 @@ app.post('/pay', async (req, res) => {
   }
 });
 
-// ── Check payment status (polled by frontend every 5s) ───────────────────────
-// GET /pay/status/:txRef
+// ── GET /pay/status/:txRef — Poll payment status ──────────────────────────────
 app.get('/pay/status/:txRef', async (req, res) => {
   const { txRef } = req.params;
-
   if (!txRef || txRef.length < 5) {
     return res.status(400).json({ success: false, error: 'Invalid txRef' });
   }
-
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
 
   try {
     const snap = await db.collection('proPayments').doc(txRef).get();
-
-    if (!snap.exists) {
-      console.log('[STATUS] Not found yet — pending. txRef:', txRef);
-      return res.json({ success: true, status: 'pending' });
-    }
+    if (!snap.exists) return res.json({ success: true, status: 'pending' });
 
     const data   = snap.data();
     const status = (data.status === 'completed' || data.status === 'confirmed')
@@ -250,17 +275,15 @@ app.get('/pay/status/:txRef', async (req, res) => {
 
     console.log('[STATUS]', status, '— txRef:', txRef);
     return res.json({ success: true, status, unlocked: status === 'completed' });
-
   } catch (err) {
     console.error('[STATUS] Error:', err.message);
     res.status(500).json({ success: false, error: 'Could not check status' });
   }
 });
 
-// ── Paynecta webhook ──────────────────────────────────────────────────────────
-// POST /api/webhook
+// ── POST /api/webhook — Paynecta callback ─────────────────────────────────────
 app.post('/api/webhook', async (req, res) => {
-  res.json({ received: true }); // ACK immediately — Paynecta retries if slow
+  res.json({ received: true }); // ACK immediately
 
   try {
     const payload   = req.body;
@@ -275,44 +298,30 @@ app.post('/api/webhook', async (req, res) => {
       payload.reference          ||
       null;
 
-    const rawStatus = tx.status    || data.status    || payload.status;
+    const rawStatus = tx.status || data.status || payload.status;
     const eventType = payload.event_type || payload.event || payload.type;
     const mpesaCode = data.MpesaReceiptNumber || data.mpesa_receipt || null;
     const amount    = data.Amount || data.amount || null;
     const mobile    = data.customer?.mobile_number || data.phone || null;
 
-    console.log('[Webhook] Received:', JSON.stringify({ eventType, txRef, rawStatus, mpesaCode }));
+    console.log('[Webhook]', JSON.stringify({ eventType, txRef, rawStatus, mpesaCode }));
 
     if (!db || !txRef) {
-      console.warn('[Webhook] Skipping — missing db or txRef. Payload:', JSON.stringify(payload));
+      console.warn('[Webhook] Skipping — missing db or txRef');
       return;
     }
 
     const isCompleted =
       eventType === 'payment.completed' ||
-      rawStatus === 'completed'         ||
-      rawStatus === 'confirmed'         ||
-      rawStatus === 'success'           ||
-      rawStatus === 'SUCCESS'           ||
-      rawStatus === 'COMPLETE';
+      ['completed','confirmed','success','SUCCESS','COMPLETE'].includes(rawStatus);
 
     const isFailed =
       eventType === 'payment.failed' ||
-      rawStatus === 'failed'         ||
-      rawStatus === 'FAILED'         ||
-      rawStatus === 'cancelled'      ||
-      rawStatus === 'CANCELLED'      ||
-      rawStatus === 'timeout'        ||
-      rawStatus === 'TIMEOUT';
+      ['failed','FAILED','cancelled','CANCELLED','timeout','TIMEOUT'].includes(rawStatus);
 
     if (isCompleted) {
       await db.collection('proPayments').doc(txRef).set(
-        {
-          status:         'completed',
-          mpesaCode,
-          completedAt:    new Date().toISOString(),
-          webhookPayload: payload,
-        },
+        { status: 'completed', mpesaCode, completedAt: new Date().toISOString() },
         { merge: true }
       );
 
@@ -328,9 +337,7 @@ app.post('/api/webhook', async (req, res) => {
           unlockedAt: new Date().toISOString(),
           amount:     payData.amount || amount || PRO_PRICE,
         });
-        console.log(`✅ Pro unlocked — phone: ${safePhone}, ref: ${txRef}`);
-      } else {
-        console.warn('[Webhook] Completed but no phone found — txRef:', txRef);
+        console.log(`✅ Pro unlocked — phone: ${safePhone}`);
       }
 
       sendTelegram(
@@ -344,7 +351,7 @@ app.post('/api/webhook', async (req, res) => {
 
     } else if (isFailed) {
       await db.collection('proPayments').doc(txRef).set(
-        { status: 'failed', failedAt: new Date().toISOString(), webhookPayload: payload },
+        { status: 'failed', failedAt: new Date().toISOString() },
         { merge: true }
       );
       console.log(`❌ Payment failed — ref: ${txRef}`);
@@ -357,22 +364,19 @@ app.post('/api/webhook', async (req, res) => {
       );
 
     } else {
-      // Unknown — log full payload for debugging
       await db.collection('proPayments').doc(txRef).set(
-        { lastEvent: eventType, lastRawStatus: rawStatus, webhookPayload: payload },
+        { lastEvent: eventType, lastRawStatus: rawStatus },
         { merge: true }
       );
-      console.log(`ℹ️  Unhandled event: ${eventType} / ${rawStatus} — txRef: ${txRef}`);
-      console.log('Full payload:', JSON.stringify(payload));
+      console.log(`ℹ️  Unhandled event: ${eventType}/${rawStatus} — txRef: ${txRef}`);
     }
 
   } catch (err) {
-    console.error('[Webhook] Error:', err.message, err.stack);
+    console.error('[Webhook] Error:', err.message);
   }
 });
 
-// ── Verify pro by phone ───────────────────────────────────────────────────────
-// GET /pro/check/:phone
+// ── GET /pro/check/:phone — Verify pro subscriber ─────────────────────────────
 app.get('/pro/check/:phone', async (req, res) => {
   const phone = req.params.phone.replace(/[^0-9]/g, '');
   if (!phone) return res.status(400).json({ success: false, error: 'Invalid phone' });
@@ -385,7 +389,7 @@ app.get('/pro/check/:phone', async (req, res) => {
   }
 });
 
-// ── Catch unhandled rejections — prevents silent Render crashes ───────────────
+// ── Catch unhandled rejections ────────────────────────────────────────────────
 process.on('unhandledRejection', (reason) => {
   console.error('⚠️  Unhandled Promise Rejection:', reason);
 });
@@ -393,6 +397,5 @@ process.on('unhandledRejection', (reason) => {
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
-  console.log(`📍 ${BASE_URL}`);
   console.log(`💰 Pro price: KES ${PRO_PRICE}`);
 });
