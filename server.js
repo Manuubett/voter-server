@@ -221,13 +221,19 @@ app.post('/pay', async (req, res) => {
       `BETT-${Date.now()}`;
 
     if (db) {
-      await db.collection('proPayments').doc(txRef).set({
-        phone:     mobile,
-        amount:    PRO_PRICE,
-        txRef,
-        status:    'pending',
-        createdAt: new Date().toISOString(),
-      });
+      try {
+        await db.collection('proPayments').doc(txRef).set({
+          phone:     mobile,
+          amount:    PRO_PRICE,
+          txRef,
+          status:    'pending',
+          createdAt: new Date().toISOString(),
+        });
+        console.log('[STK] Firestore record saved — txRef:', txRef);
+      } catch (fsErr) {
+        // Firebase write failed but STK push already sent — don't fail the request
+        console.error('[STK] ⚠️  Firestore write failed (STK still sent):', fsErr.message);
+      }
     }
 
     console.log('[STK] ✅ — txRef:', txRef);
@@ -320,40 +326,57 @@ app.post('/api/webhook', async (req, res) => {
       ['failed','FAILED','cancelled','CANCELLED','timeout','TIMEOUT'].includes(rawStatus);
 
     if (isCompleted) {
-      await db.collection('proPayments').doc(txRef).set(
-        { status: 'completed', mpesaCode, completedAt: new Date().toISOString() },
-        { merge: true }
-      );
+      try {
+        await db.collection('proPayments').doc(txRef).set(
+          { status: 'completed', mpesaCode, completedAt: new Date().toISOString() },
+          { merge: true }
+        );
 
-      const paySnap   = await db.collection('proPayments').doc(txRef).get();
-      const payData   = paySnap.exists ? paySnap.data() : {};
-      const safePhone = (payData.phone || mobile || '').replace(/[^0-9]/g, '');
+        const paySnap   = await db.collection('proPayments').doc(txRef).get();
+        const payData   = paySnap.exists ? paySnap.data() : {};
+        const safePhone = (payData.phone || mobile || '').replace(/[^0-9]/g, '');
 
-      if (safePhone) {
-        await db.collection('proSubscribers').doc(safePhone).set({
-          phone:      payData.phone || mobile,
-          txRef,
-          mpesaCode,
-          unlockedAt: new Date().toISOString(),
-          amount:     payData.amount || amount || PRO_PRICE,
-        });
-        console.log(`✅ Pro unlocked — phone: ${safePhone}`);
+        if (safePhone) {
+          await db.collection('proSubscribers').doc(safePhone).set({
+            phone:      payData.phone || mobile,
+            txRef,
+            mpesaCode,
+            unlockedAt: new Date().toISOString(),
+            amount:     payData.amount || amount || PRO_PRICE,
+          });
+          console.log(`✅ Pro unlocked — phone: ${safePhone}`);
+        }
+
+        sendTelegram(
+          `💚 <b>PAYMENT CONFIRMED</b> 💚\n\n` +
+          `📞 Phone: <code>${payData.phone || mobile || '—'}</code>\n` +
+          `💰 Amount: Ksh ${payData.amount || amount || PRO_PRICE}\n` +
+          `🧾 M-Pesa Code: <b>${mpesaCode || '—'}</b>\n` +
+          `🆔 txRef: <code>${txRef}</code>\n` +
+          `⏰ ${new Date().toLocaleString('en-KE')}`
+        );
+      } catch (fsErr) {
+        console.error('[Webhook] ⚠️  Firestore write failed on completed payment:', fsErr.message);
+        // Still notify Telegram so payment can be manually recorded
+        sendTelegram(
+          `⚠️ <b>FIRESTORE ERROR — MANUAL ACTION NEEDED</b>\n\n` +
+          `🆔 txRef: <code>${txRef}</code>\n` +
+          `🧾 M-Pesa: <b>${mpesaCode || '—'}</b>\n` +
+          `📞 Phone: <code>${mobile || '—'}</code>\n` +
+          `❗ Error: ${fsErr.message}\n` +
+          `⏰ ${new Date().toLocaleString('en-KE')}`
+        );
       }
 
-      sendTelegram(
-        `💚 <b>PAYMENT CONFIRMED</b> 💚\n\n` +
-        `📞 Phone: <code>${payData.phone || mobile || '—'}</code>\n` +
-        `💰 Amount: Ksh ${payData.amount || amount || PRO_PRICE}\n` +
-        `🧾 M-Pesa Code: <b>${mpesaCode || '—'}</b>\n` +
-        `🆔 txRef: <code>${txRef}</code>\n` +
-        `⏰ ${new Date().toLocaleString('en-KE')}`
-      );
-
     } else if (isFailed) {
-      await db.collection('proPayments').doc(txRef).set(
-        { status: 'failed', failedAt: new Date().toISOString() },
-        { merge: true }
-      );
+      try {
+        await db.collection('proPayments').doc(txRef).set(
+          { status: 'failed', failedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      } catch (fsErr) {
+        console.error('[Webhook] ⚠️  Firestore write failed on failed payment:', fsErr.message);
+      }
       console.log(`❌ Payment failed — ref: ${txRef}`);
 
       sendTelegram(
@@ -364,10 +387,14 @@ app.post('/api/webhook', async (req, res) => {
       );
 
     } else {
-      await db.collection('proPayments').doc(txRef).set(
-        { lastEvent: eventType, lastRawStatus: rawStatus },
-        { merge: true }
-      );
+      try {
+        await db.collection('proPayments').doc(txRef).set(
+          { lastEvent: eventType, lastRawStatus: rawStatus },
+          { merge: true }
+        );
+      } catch (fsErr) {
+        console.error('[Webhook] ⚠️  Firestore write failed on unknown event:', fsErr.message);
+      }
       console.log(`ℹ️  Unhandled event: ${eventType}/${rawStatus} — txRef: ${txRef}`);
     }
 
