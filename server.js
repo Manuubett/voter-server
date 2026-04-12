@@ -53,7 +53,7 @@ app.use(express.json());
 const API_KEY       = process.env.PAYNECTA_API_KEY;
 const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
 const MERCHANT_CODE = process.env.PAYNECTA_CODE;
-const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49;
+const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 1;
 const BASE_URL      = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
 const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
 
