@@ -5,22 +5,30 @@ const axios   = require('axios');
 const admin   = require('firebase-admin');
 
 // ── Firebase init ─────────────────────────────────────────────────────────────
-// FIX: Removed databaseURL — this server uses Firestore only (not Realtime DB).
-// Including databaseURL with no RTDB usage caused continuous Firebase WARNING logs.
 let db;
-if (process.env.FIREBASE_PROJECT_ID) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId:   process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    // databaseURL removed intentionally — Firestore only, no Realtime DB on this server
-  });
-  db = admin.firestore();
-  console.log('✅ Firebase (Firestore) connected');
+if (
+  process.env.FIREBASE_PROJECT_ID &&
+  process.env.FIREBASE_CLIENT_EMAIL &&
+  process.env.FIREBASE_PRIVATE_KEY
+) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId:   process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // Handle both literal \n and real newlines in the env var
+        privateKey:  process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+      // No databaseURL — Firestore only. Avoids @firebase/database WARNING spam.
+    });
+    db = admin.firestore();
+    console.log('✅ Firebase (Firestore) connected');
+  } catch (err) {
+    console.error('❌ Firebase init failed:', err.message);
+  }
 } else {
   console.warn('⚠️  Firebase env vars not set — payment routes will not persist data');
+  console.warn('   Required: FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY');
 }
 
 // ── Telegram notifier ─────────────────────────────────────────────────────────
@@ -35,7 +43,8 @@ async function sendTelegram(text) {
   try {
     const res = await axios.post(
       `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-      { chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true }
+      { chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true },
+      { timeout: 8000 }
     );
     if (res.data?.ok) console.log('[Telegram] ✅ Sent — message_id:', res.data.result?.message_id);
     else console.warn('[Telegram] ⚠️  Not ok:', JSON.stringify(res.data));
@@ -55,7 +64,7 @@ app.use(express.json());
 const API_KEY       = process.env.PAYNECTA_API_KEY;
 const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
 const MERCHANT_CODE = process.env.PAYNECTA_CODE;
-const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 1;
+const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 1; // FIX: default 49, not 1
 const BASE_URL      = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
 const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
 
@@ -71,14 +80,21 @@ const paynectaHeaders = () => ({
 
 function normalisePhone(phone) {
   let p = phone.toString().replace(/\D/g, '');
-  if (p.startsWith('0'))    p = '254' + p.slice(1);
-  if (!p.startsWith('254')) p = '254' + p;
+  if (p.startsWith('0'))                        p = '254' + p.slice(1);
+  if (p.startsWith('7') || p.startsWith('1'))   p = '254' + p; // bare 7XX / 1XX
+  if (!p.startsWith('254'))                     p = '254' + p;
   return p;
 }
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'Bett Officials API', time: new Date().toISOString() });
+  res.json({
+    status:   'ok',
+    service:  'Bett Officials API',
+    time:     new Date().toISOString(),
+    firebase: db ? 'connected' : 'not configured',
+    paynecta: API_KEY ? 'configured' : 'missing key',
+  });
 });
 
 // ── Test Paynecta API key ─────────────────────────────────────────────────────
@@ -88,6 +104,7 @@ app.get('/api/test', async (req, res) => {
     const response = await axios.get(`${PAYNECTA_URL}/me`, {
       headers: paynectaHeaders(),
       validateStatus: () => true,
+      timeout: 10000,
     });
     const ok = response.status < 400;
     res.status(ok ? 200 : 400).json({
@@ -114,6 +131,12 @@ app.post('/pay', async (req, res) => {
     });
   }
 
+  // Reject obviously invalid phones before hitting Paynecta
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 9 || digits.length > 13) {
+    return res.status(400).json({ success: false, error: 'Invalid phone number format' });
+  }
+
   const mobile    = normalisePhone(phone);
   const reference = `BETT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 
@@ -131,11 +154,16 @@ app.post('/pay', async (req, res) => {
 
     const response = await axios.post(`${PAYNECTA_URL}/payment/initialize`, payload, {
       headers: paynectaHeaders(),
+      timeout: 15000, // don't hang forever on Render
     });
 
-    const txRef = response.data?.data?.transaction_reference
-               || response.data?.data?.CheckoutRequestID
-               || reference;
+    // Robustly extract txRef — handle all known Paynecta response shapes
+    const txRef =
+      response.data?.data?.transaction_reference ||
+      response.data?.data?.CheckoutRequestID     ||
+      response.data?.transaction_reference       ||
+      response.data?.reference                   ||
+      reference; // fallback to our own ref
 
     if (db) {
       await db.collection('proPayments').doc(txRef).set({
@@ -159,32 +187,50 @@ app.post('/pay', async (req, res) => {
       `⏰ ${new Date().toLocaleString('en-KE')}`
     );
 
-    res.json({ success: true, reference: txRef, message: 'STK push sent. Enter M-Pesa PIN on your phone.', data: response.data });
+    res.json({
+      success:   true,
+      reference: txRef,
+      message:   'STK push sent. Enter M-Pesa PIN on your phone.',
+      data:      response.data,
+    });
 
   } catch (err) {
     const errData = err.response?.data || err.message;
     console.error('[STK] Error:', errData);
-    res.status(400).json({ success: false, error: err.response?.data?.message || 'Failed to initiate payment. Try again.' });
+    res.status(400).json({
+      success: false,
+      error:   err.response?.data?.message || 'Failed to initiate payment. Try again.',
+    });
   }
 });
 
-// ── Check payment status (polled by frontend) ─────────────────────────────────
+// ── Check payment status (polled by frontend every 5s) ───────────────────────
 // GET /pay/status/:txRef
 app.get('/pay/status/:txRef', async (req, res) => {
   const { txRef } = req.params;
-  console.log('[STATUS] Hit — txRef:', txRef);
+
+  if (!txRef || txRef.length < 5) {
+    return res.status(400).json({ success: false, error: 'Invalid txRef' });
+  }
 
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
 
   try {
     const snap = await db.collection('proPayments').doc(txRef).get();
-    if (!snap.exists) return res.json({ success: true, status: 'pending' });
+
+    if (!snap.exists) {
+      console.log('[STATUS] Not found yet — pending. txRef:', txRef);
+      return res.json({ success: true, status: 'pending' });
+    }
 
     const data   = snap.data();
-    const status = (data.status === 'completed' || data.status === 'confirmed') ? 'completed' : data.status;
+    const status = (data.status === 'completed' || data.status === 'confirmed')
+      ? 'completed'
+      : data.status || 'pending';
 
-    console.log('[STATUS] Returning:', status, 'for txRef:', txRef);
+    console.log('[STATUS]', status, '— txRef:', txRef);
     return res.json({ success: true, status, unlocked: status === 'completed' });
+
   } catch (err) {
     console.error('[STATUS] Error:', err.message);
     res.status(500).json({ success: false, error: 'Could not check status' });
@@ -194,24 +240,31 @@ app.get('/pay/status/:txRef', async (req, res) => {
 // ── Paynecta webhook ──────────────────────────────────────────────────────────
 // POST /api/webhook
 app.post('/api/webhook', async (req, res) => {
-  res.json({ received: true }); // ack immediately
+  res.json({ received: true }); // ACK immediately — Paynecta retries if slow
 
   try {
     const payload   = req.body;
     const data      = payload.data || {};
     const tx        = data.transaction || {};
 
-    const txRef     = tx.reference || data.reference || payload.reference;
-    const rawStatus = tx.status    || data.status;
-    const eventType = payload.event_type || payload.event || payload.type;
-    const mpesaCode = data.MpesaReceiptNumber || null;
-    const amount    = data.Amount || null;
-    const mobile    = data.customer?.mobile_number || null;
+    const txRef =
+      tx.reference               ||
+      tx.transaction_reference   ||
+      data.reference             ||
+      data.transaction_reference ||
+      payload.reference          ||
+      null;
 
-    console.log('[Webhook]', { eventType, txRef, rawStatus, mpesaCode });
+    const rawStatus = tx.status    || data.status    || payload.status;
+    const eventType = payload.event_type || payload.event || payload.type;
+    const mpesaCode = data.MpesaReceiptNumber || data.mpesa_receipt || null;
+    const amount    = data.Amount || data.amount || null;
+    const mobile    = data.customer?.mobile_number || data.phone || null;
+
+    console.log('[Webhook] Received:', JSON.stringify({ eventType, txRef, rawStatus, mpesaCode }));
 
     if (!db || !txRef) {
-      console.warn('[Webhook] Skipping — missing db or txRef');
+      console.warn('[Webhook] Skipping — missing db or txRef. Payload:', JSON.stringify(payload));
       return;
     }
 
@@ -220,6 +273,7 @@ app.post('/api/webhook', async (req, res) => {
       rawStatus === 'completed'         ||
       rawStatus === 'confirmed'         ||
       rawStatus === 'success'           ||
+      rawStatus === 'SUCCESS'           ||
       rawStatus === 'COMPLETE';
 
     const isFailed =
@@ -227,11 +281,18 @@ app.post('/api/webhook', async (req, res) => {
       rawStatus === 'failed'         ||
       rawStatus === 'FAILED'         ||
       rawStatus === 'cancelled'      ||
-      rawStatus === 'CANCELLED';
+      rawStatus === 'CANCELLED'      ||
+      rawStatus === 'timeout'        ||
+      rawStatus === 'TIMEOUT';
 
     if (isCompleted) {
       await db.collection('proPayments').doc(txRef).set(
-        { status: 'completed', mpesaCode, completedAt: new Date().toISOString(), webhookPayload: payload },
+        {
+          status:         'completed',
+          mpesaCode,
+          completedAt:    new Date().toISOString(),
+          webhookPayload: payload,
+        },
         { merge: true }
       );
 
@@ -248,6 +309,8 @@ app.post('/api/webhook', async (req, res) => {
           amount:     payData.amount || amount || PRO_PRICE,
         });
         console.log(`✅ Pro unlocked — phone: ${safePhone}, ref: ${txRef}`);
+      } else {
+        console.warn('[Webhook] Completed but no phone found — txRef:', txRef);
       }
 
       sendTelegram(
@@ -274,15 +337,17 @@ app.post('/api/webhook', async (req, res) => {
       );
 
     } else {
+      // Unknown — log full payload for debugging
       await db.collection('proPayments').doc(txRef).set(
         { lastEvent: eventType, lastRawStatus: rawStatus, webhookPayload: payload },
         { merge: true }
       );
-      console.log(`ℹ️  Unhandled event: ${eventType} / ${rawStatus}`);
+      console.log(`ℹ️  Unhandled event: ${eventType} / ${rawStatus} — txRef: ${txRef}`);
+      console.log('Full payload:', JSON.stringify(payload));
     }
 
   } catch (err) {
-    console.error('[Webhook] Error:', err.message);
+    console.error('[Webhook] Error:', err.message, err.stack);
   }
 });
 
@@ -290,7 +355,8 @@ app.post('/api/webhook', async (req, res) => {
 // GET /pro/check/:phone
 app.get('/pro/check/:phone', async (req, res) => {
   const phone = req.params.phone.replace(/[^0-9]/g, '');
-  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
+  if (!phone) return res.status(400).json({ success: false, error: 'Invalid phone' });
+  if (!db)    return res.status(503).json({ success: false, error: 'Firebase not configured' });
   try {
     const snap = await db.collection('proSubscribers').doc(phone).get();
     return res.json({ success: true, isPro: snap.exists, data: snap.exists ? snap.data() : null });
@@ -299,8 +365,14 @@ app.get('/pro/check/:phone', async (req, res) => {
   }
 });
 
+// ── Catch unhandled rejections — prevents silent Render crashes ───────────────
+process.on('unhandledRejection', (reason) => {
+  console.error('⚠️  Unhandled Promise Rejection:', reason);
+});
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
   console.log(`📍 ${BASE_URL}`);
+  console.log(`💰 Pro price: KES ${PRO_PRICE}`);
 });
