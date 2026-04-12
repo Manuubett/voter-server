@@ -1,208 +1,314 @@
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const admin = require('firebase-admin');
+const cors    = require('cors');
+const axios   = require('axios');
+const admin   = require('firebase-admin');
 
-const app = express();
+// ── Firebase init (matches working server pattern) ────────────────────────────
+let db;
+if (process.env.FIREBASE_PROJECT_ID) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId:   process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    databaseURL: 'https://community-caa4a-default-rtdb.firebaseio.com',
+  });
+  db = admin.firestore();
+  console.log('✅ Firebase connected');
+} else {
+  console.warn('⚠️  Firebase env vars not set — payment routes will not persist data');
+}
+
+// ── Telegram notifier ─────────────────────────────────────────────────────────
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID   = process.env.TELEGRAM_CHAT_ID;
+
+if (!TELEGRAM_BOT_TOKEN) console.warn('⚠️  TELEGRAM_BOT_TOKEN not set — notifications disabled');
+if (!TELEGRAM_CHAT_ID)   console.warn('⚠️  TELEGRAM_CHAT_ID not set — notifications disabled');
+
+async function sendTelegram(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    const res = await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      { chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true }
+    );
+    if (res.data?.ok) console.log('[Telegram] ✅ Sent — message_id:', res.data.result?.message_id);
+    else console.warn('[Telegram] ⚠️  Not ok:', JSON.stringify(res.data));
+  } catch (err) {
+    console.error('[Telegram] ❌ Failed:', err.response?.data || err.message);
+  }
+}
+
+// ── App setup ─────────────────────────────────────────────────────────────────
+const app  = express();
+const PORT = process.env.PORT || 3000;
+
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-// ─── FIREBASE ADMIN INIT ───────────────────────────────────────────────────
-let serviceAccount;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  } catch (e) {
-    console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT JSON:', e.message);
-    process.exit(1);
-  }
-} else if (process.env.FB_PROJECT_ID) {
-  serviceAccount = {
-    type: 'service_account',
-    project_id: process.env.FB_PROJECT_ID,
-    private_key_id: process.env.FB_PRIVATE_KEY_ID || '',
-    private_key: (process.env.FB_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-    client_email: process.env.FB_CLIENT_EMAIL,
-    client_id: process.env.FB_CLIENT_ID || '',
-    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
-    token_uri: 'https://oauth2.googleapis.com/token',
-  };
-} else {
-  console.error('❌ No Firebase credentials found.');
-  process.exit(1);
+// ── Paynecta config ───────────────────────────────────────────────────────────
+const API_KEY       = process.env.PAYNECTA_API_KEY;
+const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
+const MERCHANT_CODE = process.env.PAYNECTA_CODE;
+const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49;
+const BASE_URL      = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
+const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
+
+if (!API_KEY)       console.error('❌ PAYNECTA_API_KEY not set');
+if (!USER_EMAIL)    console.warn('⚠️  PAYNECTA_EMAIL not set');
+if (!MERCHANT_CODE) console.warn('⚠️  PAYNECTA_CODE not set');
+
+const paynectaHeaders = () => ({
+  'X-API-Key':    API_KEY,
+  'X-User-Email': USER_EMAIL,
+  'Content-Type': 'application/json',
+});
+
+function normalisePhone(phone) {
+  let p = phone.toString().replace(/\D/g, '');
+  if (p.startsWith('0'))    p = '254' + p.slice(1);
+  if (!p.startsWith('254')) p = '254' + p;
+  return p;
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://community-caa4a-default-rtdb.firebaseio.com'
-});
-const db = admin.database();
-
-// ─── CONFIG ────────────────────────────────────────────────────────────────
-const PAYCENTA_API_KEY  = process.env.PAYCENTA_API_KEY  || 'hmp_SHkWZCN5hVe46NEZr7QA1gIfcHLJ7LeSjLFyELTw';
-const PAYCENTA_EMAIL    = process.env.PAYCENTA_EMAIL    || 'bettemanuel49@gmail.com';
-const PAYCENTA_CODE     = process.env.PAYCENTA_CODE     || '';
-const WEBHOOK_SECRET    = process.env.WEBHOOK_SECRET    || '';
-const PAYCENTA_INIT_URL = 'https://paynecta.co.ke/api/v1/payment/initialize';
-const PRO_PRICE_KES     = Number(process.env.PRO_PRICE_KES) || 1;
-const BASE_URL          = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
-
-// ─── HEALTH CHECK ──────────────────────────────────────────────────────────
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'Bett Officials API', time: new Date().toISOString() });
 });
 
-// ─── INITIATE STK PUSH ─────────────────────────────────────────────────────
+// ── Test Paynecta API key ─────────────────────────────────────────────────────
+app.get('/api/test', async (req, res) => {
+  if (!API_KEY) return res.status(500).json({ success: false, message: 'PAYNECTA_API_KEY not set' });
+  try {
+    const response = await axios.get(`${PAYNECTA_URL}/me`, {
+      headers: paynectaHeaders(),
+      validateStatus: () => true,
+    });
+    const ok = response.status < 400;
+    res.status(ok ? 200 : 400).json({
+      success: ok,
+      status:  response.status,
+      message: ok ? 'API Key valid ✅' : 'API Key rejected ❌',
+      data:    response.data,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Initiate STK push ─────────────────────────────────────────────────────────
+// POST /pay  { phone: "0712345678" }
 app.post('/pay', async (req, res) => {
-  const { phone, email } = req.body;
+  const { phone } = req.body;
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
 
-  let normalizedPhone = phone.toString().trim();
-  if (normalizedPhone.startsWith('0'))       normalizedPhone = '254' + normalizedPhone.slice(1);
-  else if (normalizedPhone.startsWith('+'))  normalizedPhone = normalizedPhone.slice(1);
+  if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE) {
+    return res.status(500).json({
+      success: false,
+      error: 'Server misconfigured — set PAYNECTA_API_KEY, PAYNECTA_EMAIL, PAYNECTA_CODE in Render env vars',
+    });
+  }
 
+  const mobile    = normalisePhone(phone);
   const reference = `BETT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 
   try {
     const payload = {
-      amount: PRO_PRICE_KES,
-      mobile_number: normalizedPhone,
-      email: email || PAYCENTA_EMAIL,
+      code:          MERCHANT_CODE,
+      mobile_number: mobile,
+      amount:        PRO_PRICE,
       reference,
-      description: 'Bett Officials Pro Tips Unlock',
-      ...(PAYCENTA_CODE && { code: PAYCENTA_CODE }),
-      callback_url: `${BASE_URL}/webhook/paycenta`
+      description:   'Bett Officials Pro Tips Unlock',
+      callback_url:  `${BASE_URL}/api/webhook`,
     };
 
-    const response = await axios.post(PAYCENTA_INIT_URL, payload, {
-      headers: {
-        'X-API-Key': PAYCENTA_API_KEY,
-        'X-User-Email': PAYCENTA_EMAIL,
-        'Content-Type': 'application/json'
-      },
-      timeout: 15000
+    console.log('[STK] Sending:', { mobile, amount: PRO_PRICE, reference });
+
+    const response = await axios.post(`${PAYNECTA_URL}/payment/initialize`, payload, {
+      headers: paynectaHeaders(),
     });
 
-    await db.ref(`proPayments/${reference}`).set({
-      phone: normalizedPhone,
-      amount: PRO_PRICE_KES,
-      reference,
-      status: 'pending',
-      createdAt: Date.now(),
-      paycenta: response.data
-    });
+    const txRef = response.data?.data?.transaction_reference
+               || response.data?.data?.CheckoutRequestID
+               || reference;
 
-    return res.json({
-      success: true,
-      reference,
-      message: 'STK push sent. Enter M-Pesa PIN on your phone.',
-      data: response.data
-    });
-
-  } catch (err) {
-    console.error('STK push error:', err?.response?.data || err.message);
-    return res.status(500).json({
-      success: false,
-      error: err?.response?.data?.message || 'Failed to initiate payment. Try again.'
-    });
-  }
-});
-
-// ─── CHECK PAYMENT STATUS ──────────────────────────────────────────────────
-app.get('/pay/status/:reference', async (req, res) => {
-  const { reference } = req.params;
-  try {
-    const snap = await db.ref(`proPayments/${reference}`).get();
-    if (!snap.exists()) return res.status(404).json({ success: false, error: 'Reference not found' });
-    const payment = snap.val();
-    return res.json({ success: true, status: payment.status, unlocked: payment.status === 'completed' });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ─── PAYCENTA WEBHOOK ──────────────────────────────────────────────────────
-app.post('/webhook/paycenta', async (req, res) => {
-  if (WEBHOOK_SECRET) {
-    const incoming = req.headers['x-webhook-secret'] || req.headers['x-api-key'] || '';
-    if (incoming !== WEBHOOK_SECRET) {
-      console.warn('⚠️ Webhook unauthorized attempt');
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (db) {
+      await db.collection('proPayments').doc(txRef).set({
+        phone:     mobile,
+        amount:    PRO_PRICE,
+        reference,
+        txRef,
+        status:    'pending',
+        createdAt: new Date().toISOString(),
+        paynecta:  response.data,
+      });
     }
-  }
 
-  const event = req.body;
-  console.log('Paycenta webhook received:', JSON.stringify(event));
-  res.status(200).json({ received: true });
+    console.log('[STK] ✅ Success — txRef:', txRef);
+
+    sendTelegram(
+      `📱 <b>STK PUSH SENT</b>\n\n` +
+      `📞 Phone: <code>${mobile}</code>\n` +
+      `💰 Amount: Ksh ${PRO_PRICE}\n` +
+      `🆔 txRef: <code>${txRef}</code>\n` +
+      `⏰ ${new Date().toLocaleString('en-KE')}`
+    );
+
+    res.json({ success: true, reference: txRef, message: 'STK push sent. Enter M-Pesa PIN on your phone.', data: response.data });
+
+  } catch (err) {
+    const errData = err.response?.data || err.message;
+    console.error('[STK] Error:', errData);
+    res.status(400).json({ success: false, error: err.response?.data?.message || 'Failed to initiate payment. Try again.' });
+  }
+});
+
+// ── Check payment status (polled by frontend) ─────────────────────────────────
+// GET /pay/status/:txRef
+app.get('/pay/status/:txRef', async (req, res) => {
+  const { txRef } = req.params;
+  console.log('[STATUS] Hit — txRef:', txRef);
+
+  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
 
   try {
-    const reference =
-      event?.reference ||
-      event?.data?.reference ||
-      event?.payment?.reference ||
-      event?.data?.payment?.reference;
+    const snap = await db.collection('proPayments').doc(txRef).get();
+    if (!snap.exists) return res.json({ success: true, status: 'pending' });
 
-    const eventType =
-      event?.event ||
-      event?.type ||
-      event?.status ||
-      event?.data?.status ||
-      event?.data?.event;
+    const data   = snap.data();
+    const status = (data.status === 'completed' || data.status === 'confirmed') ? 'completed' : data.status;
 
-    if (!reference) { console.warn('Webhook missing reference:', event); return; }
+    console.log('[STATUS] Returning:', status, 'for txRef:', txRef);
+    return res.json({ success: true, status, unlocked: status === 'completed' });
+  } catch (err) {
+    console.error('[STATUS] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Could not check status' });
+  }
+});
 
-    const snap = await db.ref(`proPayments/${reference}`).get();
-    if (!snap.exists()) { console.warn('No payment record for ref:', reference); return; }
+// ── Paynecta webhook ──────────────────────────────────────────────────────────
+// POST /api/webhook
+// Confirmed Paynecta payload structure:
+// {
+//   event_type: "payment.completed",
+//   data: {
+//     transaction: { reference: "BETT-...", status: "completed" },
+//     MpesaReceiptNumber: "UCULOAXIKR",
+//     Amount: 49,
+//     customer: { mobile_number: "254..." }
+//   }
+// }
+app.post('/api/webhook', async (req, res) => {
+  res.json({ received: true }); // ack immediately
 
-    const payment = snap.val();
+  try {
+    const payload   = req.body;
+    const data      = payload.data || {};
+    const tx        = data.transaction || {};
+
+    const txRef     = tx.reference || data.reference || payload.reference;
+    const rawStatus = tx.status    || data.status;
+    const eventType = payload.event_type || payload.event || payload.type;
+    const mpesaCode = data.MpesaReceiptNumber || null;
+    const amount    = data.Amount || null;
+    const mobile    = data.customer?.mobile_number || null;
+
+    console.log('[Webhook]', { eventType, txRef, rawStatus, mpesaCode });
+
+    if (!db || !txRef) {
+      console.warn('[Webhook] Skipping — missing db or txRef');
+      return;
+    }
 
     const isCompleted =
-      ['payment.completed','Payment Completed','completed','success','COMPLETE','SUCCESS']
-        .includes(eventType);
+      eventType === 'payment.completed' ||
+      rawStatus === 'completed'         ||
+      rawStatus === 'confirmed'         ||
+      rawStatus === 'success'           ||
+      rawStatus === 'COMPLETE';
+
     const isFailed =
-      ['payment.failed','Payment Failed','failed','FAILED','CANCELLED','cancelled']
-        .includes(eventType);
+      eventType === 'payment.failed' ||
+      rawStatus === 'failed'         ||
+      rawStatus === 'FAILED'         ||
+      rawStatus === 'cancelled'      ||
+      rawStatus === 'CANCELLED';
 
     if (isCompleted) {
-      await db.ref(`proPayments/${reference}`).update({
-        status: 'completed', completedAt: Date.now(), webhookPayload: event
-      });
-      const safePhone = payment.phone.replace(/[^0-9]/g, '');
-      await db.ref(`proSubscribers/${safePhone}`).set({
-        phone: payment.phone, reference,
-        unlockedAt: Date.now(), amount: payment.amount
-      });
-      console.log(`✅ Pro unlocked — phone: ${payment.phone}, ref: ${reference}`);
+      await db.collection('proPayments').doc(txRef).set(
+        { status: 'completed', mpesaCode, completedAt: new Date().toISOString(), webhookPayload: payload },
+        { merge: true }
+      );
+
+      const paySnap   = await db.collection('proPayments').doc(txRef).get();
+      const payData   = paySnap.exists ? paySnap.data() : {};
+      const safePhone = (payData.phone || mobile || '').replace(/[^0-9]/g, '');
+
+      if (safePhone) {
+        await db.collection('proSubscribers').doc(safePhone).set({
+          phone:      payData.phone || mobile,
+          txRef,
+          mpesaCode,
+          unlockedAt: new Date().toISOString(),
+          amount:     payData.amount || amount || PRO_PRICE,
+        });
+        console.log(`✅ Pro unlocked — phone: ${safePhone}, ref: ${txRef}`);
+      }
+
+      sendTelegram(
+        `💚 <b>PAYMENT CONFIRMED</b> 💚\n\n` +
+        `📞 Phone: <code>${payData.phone || mobile || '—'}</code>\n` +
+        `💰 Amount: Ksh ${payData.amount || amount || PRO_PRICE}\n` +
+        `🧾 M-Pesa Code: <b>${mpesaCode || '—'}</b>\n` +
+        `🆔 txRef: <code>${txRef}</code>\n` +
+        `⏰ ${new Date().toLocaleString('en-KE')}`
+      );
 
     } else if (isFailed) {
-      await db.ref(`proPayments/${reference}`).update({
-        status: 'failed', failedAt: Date.now(), webhookPayload: event
-      });
-      console.log(`❌ Payment failed — ref: ${reference}`);
+      await db.collection('proPayments').doc(txRef).set(
+        { status: 'failed', failedAt: new Date().toISOString(), webhookPayload: payload },
+        { merge: true }
+      );
+      console.log(`❌ Payment failed — ref: ${txRef}`);
+
+      sendTelegram(
+        `❌ <b>PAYMENT FAILED</b>\n\n` +
+        `🆔 txRef: <code>${txRef}</code>\n` +
+        `📞 Phone: <code>${mobile || '—'}</code>\n` +
+        `⏰ ${new Date().toLocaleString('en-KE')}`
+      );
 
     } else {
-      await db.ref(`proPayments/${reference}`).update({
-        lastEvent: eventType, webhookPayload: event
-      });
-      console.log(`ℹ️ Unhandled event type: ${eventType}`);
+      await db.collection('proPayments').doc(txRef).set(
+        { lastEvent: eventType, lastRawStatus: rawStatus, webhookPayload: payload },
+        { merge: true }
+      );
+      console.log(`ℹ️  Unhandled event: ${eventType} / ${rawStatus}`);
     }
 
   } catch (err) {
-    console.error('Webhook processing error:', err.message);
+    console.error('[Webhook] Error:', err.message);
   }
 });
 
-// ─── VERIFY PRO BY PHONE ───────────────────────────────────────────────────
+// ── Verify pro by phone ───────────────────────────────────────────────────────
+// GET /pro/check/:phone
 app.get('/pro/check/:phone', async (req, res) => {
   const phone = req.params.phone.replace(/[^0-9]/g, '');
+  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
   try {
-    const snap = await db.ref(`proSubscribers/${phone}`).get();
-    return res.json({ success: true, isPro: snap.exists(), data: snap.exists() ? snap.val() : null });
+    const snap = await db.collection('proSubscribers').doc(phone).get();
+    return res.json({ success: true, isPro: snap.exists, data: snap.exists ? snap.data() : null });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// ─── START ─────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Bett Officials server running on port ${PORT}`));
+// ── Start ─────────────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`✅ Bett Officials server running on port ${PORT}`);
+  console.log(`📍 ${BASE_URL}`);
+});
