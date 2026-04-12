@@ -4,7 +4,9 @@ const cors    = require('cors');
 const axios   = require('axios');
 const admin   = require('firebase-admin');
 
-// ── Firebase init (matches working server pattern) ────────────────────────────
+// ── Firebase init ─────────────────────────────────────────────────────────────
+// FIX: Removed databaseURL — this server uses Firestore only (not Realtime DB).
+// Including databaseURL with no RTDB usage caused continuous Firebase WARNING logs.
 let db;
 if (process.env.FIREBASE_PROJECT_ID) {
   admin.initializeApp({
@@ -13,10 +15,10 @@ if (process.env.FIREBASE_PROJECT_ID) {
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     }),
-    databaseURL: 'https://community-caa4a-default-rtdb.firebaseio.com',
+    // databaseURL removed intentionally — Firestore only, no Realtime DB on this server
   });
   db = admin.firestore();
-  console.log('✅ Firebase connected');
+  console.log('✅ Firebase (Firestore) connected');
 } else {
   console.warn('⚠️  Firebase env vars not set — payment routes will not persist data');
 }
@@ -191,16 +193,6 @@ app.get('/pay/status/:txRef', async (req, res) => {
 
 // ── Paynecta webhook ──────────────────────────────────────────────────────────
 // POST /api/webhook
-// Confirmed Paynecta payload structure:
-// {
-//   event_type: "payment.completed",
-//   data: {
-//     transaction: { reference: "BETT-...", status: "completed" },
-//     MpesaReceiptNumber: "UCULOAXIKR",
-//     Amount: 49,
-//     customer: { mobile_number: "254..." }
-//   }
-// }
 app.post('/api/webhook', async (req, res) => {
   res.json({ received: true }); // ack immediately
 
