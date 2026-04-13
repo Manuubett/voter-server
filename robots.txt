@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block sensitive or unnecessary paths (optional)
+Disallow: /admin
+Disallow: /server
+Disallow: /private
+
+# Allow important assets
+Allow: /og-image.png
+
+# Sitemap location
+Sitemap: https://pro-prediction.bett.website/sitemap.xml
