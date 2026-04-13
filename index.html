@@ -71,7 +71,7 @@ body.light .logo-text{background:linear-gradient(135deg,#0f1623 40%,var(--accent
 .pro-tag{font-size:.68rem;font-weight:700;background:linear-gradient(135deg,var(--gold),#f97316);color:#000;padding:3px 10px;border-radius:20px;letter-spacing:.3px;display:flex;align-items:center;gap:3px}
 .card-ts{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:3px}
 
-/* TABLE */
+/* TABLES */
 .tips-tbl{width:100%;border-collapse:collapse;font-size:.87rem}
 .tips-tbl th{padding:.7rem 1.2rem;text-align:left;font-size:.67rem;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
 .tips-tbl td{padding:.85rem 1.2rem;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -84,6 +84,13 @@ body.light .logo-text{background:linear-gradient(135deg,#0f1623 40%,var(--accent
 .result-win{width:28px;height:28px;border-radius:50%;background:rgba(34,197,94,.15);border:1.5px solid var(--success);color:var(--success);display:inline-flex;align-items:center;justify-content:center;font-size:.78rem}
 .result-loss{width:28px;height:28px;border-radius:50%;background:rgba(239,68,68,.15);border:1.5px solid var(--danger);color:var(--danger);display:inline-flex;align-items:center;justify-content:center;font-size:.78rem}
 .result-pend{padding:3px 10px;border-radius:20px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:var(--warn);font-size:.72rem;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+
+/* Status badges (LIVE / Finished) */
+.status-live{background:rgba(34,197,94,.15);border:1px solid var(--success);color:var(--success);padding:3px 8px;border-radius:20px;font-size:.7rem;font-weight:800;display:inline-flex;align-items:center;gap:4px;animation:pulse-soft 1.5s infinite}
+.status-live i{font-size:.65rem}
+@keyframes pulse-soft{0%,100%{opacity:1}50%{opacity:.7}}
+.status-finished{background:rgba(100,116,139,.15);border:1px solid var(--muted);color:var(--muted);padding:3px 8px;border-radius:20px;font-size:.7rem;font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.status-time{color:var(--muted);font-size:.8rem;display:flex;align-items:center;gap:4px;white-space:nowrap}
 
 /* PRO GATE */
 .pro-gate{text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden}
@@ -309,7 +316,6 @@ function checkProExpiry() {
   return localStorage.getItem('pro_unlocked') === 'true';
 }
 function grantProAccess() {
-  proUnlocked = true;
   localStorage.setItem('pro_unlocked', 'true');
   localStorage.setItem('pro_unlock_date', todayKey);
 }
@@ -364,6 +370,46 @@ function resultBadge(r) {
   return '<span class="result-pend"><i class="fas fa-hourglass-half"></i> Pending</span>';
 }
 
+/* ── DYNAMIC MATCH STATUS (LIVE / FINISHED) ── */
+function getMatchStatus(timeStr) {
+  if (!timeStr) return null; // no time -> show TBD
+  const [hour, minute] = timeStr.split(':').map(Number);
+  if (isNaN(hour) || isNaN(minute)) return null;
+
+  const now = new Date();
+  const kickoff = new Date();
+  kickoff.setHours(hour, minute, 0, 0);
+  const endTime = new Date(kickoff.getTime() + 60 * 60 * 1000); // +1 hour
+
+  if (now < kickoff) return null;               // not started -> show scheduled time
+  if (now >= kickoff && now < endTime) return 'live';
+  return 'finished';
+}
+
+function renderMatchStatus(timeStr) {
+  const status = getMatchStatus(timeStr);
+  if (status === 'live') {
+    return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
+  } else if (status === 'finished') {
+    return `<span class="status-finished"><i class="fas fa-check-double"></i> Finished</span>`;
+  } else {
+    // not started or no time: show scheduled time
+    return `<span class="status-time"><i class="far fa-clock"></i> ${fmtTime(timeStr)}</span>`;
+  }
+}
+
+// This function will be called every 30 seconds to refresh all displayed statuses
+function updateAllMatchStatuses() {
+  document.querySelectorAll('.match-status-cell').forEach(cell => {
+    const timeVal = cell.getAttribute('data-kickoff');
+    if (timeVal) {
+      cell.innerHTML = renderMatchStatus(timeVal);
+    }
+  });
+}
+let statusInterval = null;
+
+/* ── BUILD CARDS (with status placeholder) ── */
 function buildCard(leagueName, tips, isPro) {
   if (!tips.length) return null;
   const sorted = [...tips].sort((a,b) => (a.time||'').localeCompare(b.time||''));
@@ -379,14 +425,21 @@ function buildCard(leagueName, tips, isPro) {
     ? `<span class="card-ts"><i class="far fa-clock"></i>${fmtTime(firstTime)}</span>`
     : '';
 
-  const rows = sorted.map(t => `
+  const rows = sorted.map(t => {
+    const timeAttr = t.time || '';
+    return `
     <tr>
       <td data-label="MATCH"><span class="match-name">${esc(t.matchup||'—')}</span></td>
       <td data-label="PREDICTION"><span class="pred-tag">${esc(t.prediction||'—')}</span></td>
-      <td data-label="KICK-OFF"><span class="time-tag"><i class="far fa-clock"></i>${fmtTime(t.time)}</span></td>
+      <td data-label="STATUS">
+        <div class="match-status-cell" data-kickoff="${esc(timeAttr)}">
+          ${renderMatchStatus(timeAttr)}
+        </div>
+      </td>
       <td data-label="ODDS"><span class="odds-tag">${esc(t.odds||'-')}</span></td>
       <td data-label="RESULT">${resultBadge(t.result)}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   d.innerHTML = `
     <div class="league-head">
@@ -395,9 +448,9 @@ function buildCard(leagueName, tips, isPro) {
     </div>
     <div style="overflow-x:auto">
       <table class="tips-tbl">
-        <thead><tr><th>Match</th><th>Prediction</th><th>Kick-off</th><th>Odds</th><th>Result</th></tr></thead>
+        <thead><tr><th>Match</th><th>Prediction</th><th>Status</th><th>Odds</th><th>Result</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+       </table>
     </div>`;
   return d;
 }
@@ -406,7 +459,7 @@ function groupByLeague(arr) {
   return arr.reduce((g,i) => { (g[i.league]=g[i.league]||[]).push(i); return g; }, {});
 }
 
-/* ── RENDER ── */
+/* ── RENDER ALL (now includes status updater start) ── */
 function renderAll(snap) {
   __lastSnap = snap;
   const data = snap.val();
@@ -414,7 +467,6 @@ function renderAll(snap) {
   const prevEl  = document.getElementById('prevContent');
   const proEl   = document.getElementById('proContent');
 
-  // Live sync timestamp
   document.getElementById('lastUpdated').innerHTML =
     `<i class="fas fa-rotate"></i> Last synced: ${fmtNow()}`;
 
@@ -423,6 +475,8 @@ function renderAll(snap) {
     prevEl.innerHTML  = `<div class="empty"><i class="fas fa-history"></i><h4>No results yet</h4></div>`;
     proEl.innerHTML   = renderProGate(0);
     renderStats([],[]);
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = null;
     return;
   }
 
@@ -439,7 +493,7 @@ function renderAll(snap) {
 
   renderStats(pending, finalized);
 
-  // TODAY — free pending tips
+  // TODAY (free pending)
   todayEl.innerHTML = '';
   const pg = groupByLeague(pending);
   if (Object.keys(pg).length)
@@ -447,7 +501,7 @@ function renderAll(snap) {
   else
     todayEl.innerHTML = `<div class="empty"><i class="fas fa-clock"></i><h4>No pending predictions</h4><p>Check the Results tab for finalized games</p></div>`;
 
-  // RESULTS — free finalized tips
+  // RESULTS (free finalized)
   prevEl.innerHTML = '';
   const fg = groupByLeague(finalized);
   if (Object.keys(fg).length)
@@ -455,11 +509,13 @@ function renderAll(snap) {
   else
     prevEl.innerHTML = `<div class="empty"><i class="fas fa-chart-simple"></i><h4>No finalized results yet</h4></div>`;
 
-  // PRO — all pro tips with results column always shown
+  // PRO (all pro tips)
   proEl.innerHTML = '';
   if (!proUnlocked) {
     proEl.innerHTML = renderProGate(proAll.length);
     document.getElementById('unlockBtn')?.addEventListener('click', openModal);
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = null;
     return;
   }
   const prg = groupByLeague(proAll);
@@ -467,6 +523,13 @@ function renderAll(snap) {
     Object.entries(prg).forEach(([l,t]) => { const c=buildCard(l,t,true); if(c) proEl.appendChild(c); });
   else
     proEl.innerHTML = `<div class="empty"><i class="fas fa-crown"></i><h4>No pro tips yet today</h4></div>`;
+
+  // start/restart status updater (refresh every 30 seconds)
+  if (statusInterval) clearInterval(statusInterval);
+  statusInterval = setInterval(() => {
+    updateAllMatchStatuses();
+  }, 30000);
+  updateAllMatchStatuses(); // immediate first run
 }
 
 function renderStats(pending, finalized) {
@@ -502,6 +565,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const tab = btn.getAttribute('data-tab');
     document.getElementById(`sec-${tab}`).classList.add('active');
     if (tab==='pro') rtdb.ref(`tips/${todayKey}`).once('value').then(renderAll);
+    else updateAllMatchStatuses(); // refresh statuses when switching tabs
   });
 });
 
@@ -515,143 +579,25 @@ function attachRealtime() {
   });
 }
 
-/* ── PAYMENT ── */
+/* ── PAYMENT (unchanged from original) ── */
 function showStep(s) {
   ['stepPhone','stepWaiting','stepSuccess','stepFailed'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = id===s ? 'block' : 'none';
   });
 }
-
-function openModal() {
-  stkBusy = false; showStep('stepPhone');
-  document.getElementById('mpesaPhone').value = '';
-  document.getElementById('phoneErr').classList.remove('show');
-  const btn = document.getElementById('stkBtn');
-  btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt';
-  document.getElementById('payModal').classList.add('open');
-}
-
-function closeModal() {
-  stopPoll(); stkBusy = false;
-  document.getElementById('payModal').classList.remove('open');
-}
-
-function stopPoll() {
-  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-}
-
-async function checkProByPhone(phone) {
-  if (!phone) return false;
-  try {
-    const res = await fetch(`${SERVER_URL}/pro/check/${phone}`);
-    const d = await res.json();
-    if (d.isPro) { grantProAccess(); return true; }
-  } catch(e) {}
-  return false;
-}
-
-async function startPoll(ref) {
-  stopPoll(); let att=0; const max=18;
-  pollTimer = setInterval(async () => {
-    att++;
-    try {
-      const res = await fetch(`${SERVER_URL}/pay/status/${ref}`);
-      if (!res.ok) return;
-      const d = await res.json();
-      if (d.status === 'completed') {
-        stopPoll(); grantProAccess(); stkBusy = false;
-        showStep('stepSuccess');
-        rtdb.ref(`tips/${todayKey}`).once('value').then(renderAll);
-      } else if (d.status === 'failed') {
-        stopPoll(); stkBusy = false;
-        const ph = localStorage.getItem('pro_phone');
-        if (ph && await checkProByPhone(ph)) { showStep('stepSuccess'); return; }
-        document.getElementById('failMsg').textContent = 'Payment cancelled or failed.';
-        showStep('stepFailed');
-      } else if (att >= max) {
-        stopPoll(); stkBusy = false;
-        const ph = localStorage.getItem('pro_phone');
-        if (ph && await checkProByPhone(ph)) { showStep('stepSuccess'); return; }
-        document.getElementById('failMsg').textContent =
-          `Timed out. Use "I already paid" if you completed payment. Ref: ${ref}`;
-        showStep('stepFailed');
-      }
-    } catch(e) {}
-  }, 5000);
-}
-
+function openModal() { stkBusy = false; showStep('stepPhone'); document.getElementById('mpesaPhone').value = ''; document.getElementById('phoneErr').classList.remove('show'); const btn = document.getElementById('stkBtn'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt'; document.getElementById('payModal').classList.add('open'); }
+function closeModal() { stopPoll(); stkBusy = false; document.getElementById('payModal').classList.remove('open'); }
+function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+async function checkProByPhone(phone) { if (!phone) return false; try { const res = await fetch(`${SERVER_URL}/pro/check/${phone}`); const d = await res.json(); if (d.isPro) { grantProAccess(); return true; } } catch(e) {} return false; }
+async function startPoll(ref) { stopPoll(); let att=0; const max=18; pollTimer = setInterval(async () => { att++; try { const res = await fetch(`${SERVER_URL}/pay/status/${ref}`); if (!res.ok) return; const d = await res.json(); if (d.status === 'completed') { stopPoll(); grantProAccess(); stkBusy = false; showStep('stepSuccess'); rtdb.ref(`tips/${todayKey}`).once('value').then(renderAll); } else if (d.status === 'failed') { stopPoll(); stkBusy = false; const ph = localStorage.getItem('pro_phone'); if (ph && await checkProByPhone(ph)) { showStep('stepSuccess'); return; } document.getElementById('failMsg').textContent = 'Payment cancelled or failed.'; showStep('stepFailed'); } else if (att >= max) { stopPoll(); stkBusy = false; const ph = localStorage.getItem('pro_phone'); if (ph && await checkProByPhone(ph)) { showStep('stepSuccess'); return; } document.getElementById('failMsg').textContent = `Timed out. Use "I already paid" if you completed payment. Ref: ${ref}`; showStep('stepFailed'); } } catch(e) {} }, 5000); }
 document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
-document.getElementById('payModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
-});
-
-document.getElementById('stkBtn').addEventListener('click', async () => {
-  if (stkBusy) return;
-  const phone = document.getElementById('mpesaPhone').value.trim();
-  const errEl = document.getElementById('phoneErr');
-  errEl.classList.remove('show');
-  const digits = phone.replace(/\D/g,'');
-  if (!digits || digits.length < 9 || digits.length > 12) {
-    errEl.textContent = 'Enter a valid Kenyan phone number (e.g. 0712345678).';
-    errEl.classList.add('show'); return;
-  }
-  let norm = digits;
-  if (norm.startsWith('0')) norm = '254' + norm.slice(1);
-  if (!norm.startsWith('254')) norm = '254' + norm;
-  localStorage.setItem('pro_phone', norm);
-  stkBusy = true;
-  const btn = document.getElementById('stkBtn');
-  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
-  try {
-    const res = await fetch(`${SERVER_URL}/pay`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({phone: norm})
-    });
-    const d = await res.json();
-    if (!d.success) throw new Error(d.error || 'Failed');
-    curRef = d.reference;
-    document.getElementById('waitPhone').textContent = norm;
-    document.getElementById('waitRef').textContent = `Ref: ${curRef}`;
-    showStep('stepWaiting');
-    setTimeout(() => { document.getElementById('progBar').style.width='0%'; }, 200);
-    startPoll(curRef);
-  } catch(e) {
-    stkBusy = false; btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt';
-    errEl.textContent = e.message; errEl.classList.add('show');
-  }
-});
-
-document.getElementById('cancelWaitBtn').addEventListener('click', () => {
-  stopPoll(); stkBusy = false; showStep('stepPhone');
-  const btn = document.getElementById('stkBtn');
-  btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt';
-});
-
-document.getElementById('manualVerifyBtn').addEventListener('click', async () => {
-  const ph = localStorage.getItem('pro_phone');
-  if (!ph) { alert('No phone stored. Retry payment.'); return; }
-  if (await checkProByPhone(ph)) showStep('stepSuccess');
-  else alert('Payment not confirmed yet. If you paid, wait a moment or contact support.');
-});
-
-document.getElementById('retryBtn').addEventListener('click', () => {
-  stkBusy = false;
-  const btn = document.getElementById('stkBtn');
-  btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt';
-  showStep('stepPhone');
-});
-
-document.getElementById('goProBtn').addEventListener('click', () => {
-  closeModal();
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelector('[data-tab="pro"]').classList.add('active');
-  document.getElementById('sec-pro').classList.add('active');
-  rtdb.ref(`tips/${todayKey}`).once('value').then(renderAll);
-});
-
+document.getElementById('payModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('stkBtn').addEventListener('click', async () => { if (stkBusy) return; const phone = document.getElementById('mpesaPhone').value.trim(); const errEl = document.getElementById('phoneErr'); errEl.classList.remove('show'); const digits = phone.replace(/\D/g,''); if (!digits || digits.length < 9 || digits.length > 12) { errEl.textContent = 'Enter a valid Kenyan phone number (e.g. 0712345678).'; errEl.classList.add('show'); return; } let norm = digits; if (norm.startsWith('0')) norm = '254' + norm.slice(1); if (!norm.startsWith('254')) norm = '254' + norm; localStorage.setItem('pro_phone', norm); stkBusy = true; const btn = document.getElementById('stkBtn'); btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…'; try { const res = await fetch(`${SERVER_URL}/pay`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({phone: norm}) }); const d = await res.json(); if (!d.success) throw new Error(d.error || 'Failed'); curRef = d.reference; document.getElementById('waitPhone').textContent = norm; document.getElementById('waitRef').textContent = `Ref: ${curRef}`; showStep('stepWaiting'); setTimeout(() => { document.getElementById('progBar').style.width='0%'; }, 200); startPoll(curRef); } catch(e) { stkBusy = false; btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt'; errEl.textContent = e.message; errEl.classList.add('show'); } });
+document.getElementById('cancelWaitBtn').addEventListener('click', () => { stopPoll(); stkBusy = false; showStep('stepPhone'); const btn = document.getElementById('stkBtn'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt'; });
+document.getElementById('manualVerifyBtn').addEventListener('click', async () => { const ph = localStorage.getItem('pro_phone'); if (!ph) { alert('No phone stored. Retry payment.'); return; } if (await checkProByPhone(ph)) showStep('stepSuccess'); else alert('Payment not confirmed yet. If you paid, wait a moment or contact support.'); });
+document.getElementById('retryBtn').addEventListener('click', () => { stkBusy = false; const btn = document.getElementById('stkBtn'); btn.disabled = false; btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt'; showStep('stepPhone'); });
+document.getElementById('goProBtn').addEventListener('click', () => { closeModal(); document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.querySelector('[data-tab="pro"]').classList.add('active'); document.getElementById('sec-pro').classList.add('active'); rtdb.ref(`tips/${todayKey}`).once('value').then(renderAll); });
 document.addEventListener('click', e => { if(e.target.closest('#unlockBtn')) openModal(); });
 
 /* ── BOOT ── */
