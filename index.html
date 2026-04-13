@@ -19,7 +19,6 @@
 <meta property="og:title" content="Today’s Football Predictions & Winning Tips | Bett Officials">
 <meta property="og:description" content="Accurate football predictions with high win rate. Free tips and expert analysis updated daily for serious bettors.">
 <meta property="og:url" content="https://pro-prediction.bett.website/">
-<!-- ✅ FIXED: Direct image URL (not an HTML page) -->
 <meta property="og:image" content="https://pro-prediction.bett.website/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -32,7 +31,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Today’s Football Predictions & Winning Tips">
 <meta name="twitter:description" content="Daily football predictions, free tips, and expert match analysis with high accuracy.">
-<!-- ✅ FIXED: Same direct image URL -->
 <meta name="twitter:image" content="https://pro-prediction.bett.website/og-image.png">
 <meta name="twitter:image:alt" content="Bett Officials - Football Predictions">
 
@@ -289,7 +287,6 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
 
   <!-- RESULTS (date-browsable) -->
   <div class="section" id="sec-previous">
-    <!-- Date navigation bar -->
     <div class="results-header">
       <div class="results-title">
         <i class="fas fa-calendar-check" style="color:var(--accent)"></i>
@@ -299,16 +296,13 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
         <button class="date-nav-btn" id="prevDatePrev" title="Previous day"><i class="fas fa-chevron-left"></i></button>
         <span class="date-display" id="prevDateDisplay">—</span>
         <button class="date-nav-btn" id="prevDateNext" title="Next day" disabled><i class="fas fa-chevron-right"></i></button>
-        <!-- Custom date picker trigger -->
         <div class="date-input-wrap">
           <button class="date-picker-btn"><i class="fas fa-calendar-alt"></i> Pick date</button>
           <input type="date" id="prevDatePicker" max="">
         </div>
       </div>
     </div>
-    <!-- Summary pills inserted by JS -->
     <div class="results-summary" id="prevSummary"></div>
-    <!-- Cards inserted by JS -->
     <div id="prevContent"><div class="loading-wrap"><div class="spin"></div><p>Loading results…</p></div></div>
   </div>
 
@@ -318,11 +312,11 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
   </div>
 </div>
 
-<!-- PAYMENT MODAL -->
+<!-- ==================== PRO PAYMENT MODAL (REPLACED) ==================== -->
 <div class="modal-bg" id="payModal">
   <div class="modal-box">
     <div class="modal-head">
-      <h5><i class="fas fa-crown" style="color:var(--gold)"></i> Unlock Pro Tips</h5>
+      <h5><i class="fas fa-crown" style="color:var(--gold)"></i> Expert Picks Access</h5>
       <button class="modal-close" id="modalCloseBtn"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
@@ -330,7 +324,7 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
         <div class="price-hero">
           <div style="font-size:2rem;margin-bottom:.3rem">👑</div>
           <div class="price-big">KES 49</div>
-          <small>One-time · Instant access · Today's pro tips only</small>
+          <small>One-time · Instant access · Today's expert picks only</small>
         </div>
         <label class="form-lbl"><i class="fas fa-mobile-alt"></i> M-Pesa Number</label>
         <div class="input-grp">
@@ -355,9 +349,9 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
       <div id="stepSuccess" style="display:none">
         <div class="success-step">
           <div class="emoji">🎉</div>
-          <h5>Payment Confirmed!</h5>
-          <p>Pro tips unlocked. Access expires at midnight — good luck!</p>
-          <button class="btn-mpesa" id="goProBtn"><i class="fas fa-crown"></i> View Pro Tips</button>
+          <h5>You're In!</h5>
+          <p>Expert picks unlocked. Access expires at midnight — go get those wins!</p>
+          <button class="btn-mpesa" id="goProBtn"><i class="fas fa-crown"></i> View Expert Picks</button>
         </div>
       </div>
       <div id="stepFailed" style="display:none">
@@ -406,7 +400,7 @@ firebase.initializeApp(firebaseConfig);
 const rtdb = firebase.database();
 const todayKey = new Date().toISOString().split('T')[0];
 
-/* ── PRO EXPIRY ── */
+/* ── PRO EXPIRY (REPLACED) ── */
 function checkProExpiry() {
   const unlockDate = localStorage.getItem('pro_unlock_date');
   if (unlockDate && unlockDate !== todayKey) {
@@ -425,7 +419,7 @@ function grantProAccess() {
 let proUnlocked = checkProExpiry();
 let pollTimer = null, curRef = null, stkBusy = false, curListener = null, __lastSnap = null;
 
-/* ── MIDNIGHT COUNTDOWN ── */
+/* ── MIDNIGHT COUNTDOWN (REPLACED) ── */
 function startMidnightCountdown() {
   const wrap = document.getElementById('countdownWrap');
   const el   = document.getElementById('proCountdown');
@@ -449,7 +443,7 @@ function startMidnightCountdown() {
   tick(); setInterval(tick, 1000);
 }
 
-/* ── HELPERS ── */
+/* ── HELPERS (unchanged from original, kept for compatibility) ── */
 const esc = s => (s||'').replace(/[&<>]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 
 function fmtTime(t) {
@@ -505,7 +499,7 @@ function updateAllMatchStatuses() {
 }
 let statusInterval = null;
 
-/* ── BUILD LEAGUE CARD ── */
+/* ── BUILD LEAGUE CARD (unchanged) ── */
 function buildCard(leagueName, tips, isPro, showOutcome) {
   if (!tips.length) return null;
   const sorted = [...tips].sort((a,b) => (a.time||'').localeCompare(b.time||''));
@@ -562,16 +556,14 @@ function groupByLeague(arr) {
 }
 
 /* ══════════════════════════════════════════
-   PREVIOUS RESULTS — DATE BROWSER
+   PREVIOUS RESULTS — DATE BROWSER (unchanged)
 ══════════════════════════════════════════ */
-let prevBrowseDate = new Date(todayKey); // start at today, will step back
+let prevBrowseDate = new Date(todayKey);
 
-/* Format a Date object as YYYY-MM-DD */
 function dateKey(d) {
   return d.toISOString().split('T')[0];
 }
 
-/* Human-readable label */
 function dateLabel(d) {
   const key = dateKey(d);
   if (key === todayKey) return 'Today';
@@ -586,11 +578,7 @@ function updateDateNavUI() {
   document.getElementById('prevDateDisplay').textContent = key;
   document.getElementById('prevDateLabel').textContent =
     dateLabel(prevBrowseDate) + ' Results';
-
-  // Disable "next" if already at today
   document.getElementById('prevDateNext').disabled = (key >= todayKey);
-
-  // Set max on the date picker
   document.getElementById('prevDatePicker').max = todayKey;
   document.getElementById('prevDatePicker').value = key;
 }
@@ -603,17 +591,10 @@ function loadResultsForDate(dateStr) {
 
   rtdb.ref(`tips/${dateStr}`).once('value').then(snap => {
     const data = snap.val();
-
     if (!data) {
-      prevEl.innerHTML = `<div class="empty">
-        <i class="fas fa-calendar-times"></i>
-        <h4>No data for ${dateStr}</h4>
-        <p>No tips were posted on this date.</p>
-      </div>`;
+      prevEl.innerHTML = `<div class="empty"><i class="fas fa-calendar-times"></i><h4>No data for ${dateStr}</h4><p>No tips were posted on this date.</p></div>`;
       return;
     }
-
-    // Collect all tips (free + pro) for this date
     const all = [];
     for (const league in data) {
       const obj = data[league]?.tips; if (!obj) continue;
@@ -621,16 +602,10 @@ function loadResultsForDate(dateStr) {
         all.push({...tip, league});
       });
     }
-
     if (!all.length) {
-      prevEl.innerHTML = `<div class="empty">
-        <i class="fas fa-futbol"></i>
-        <h4>No tips found for ${dateStr}</h4>
-      </div>`;
+      prevEl.innerHTML = `<div class="empty"><i class="fas fa-futbol"></i><h4>No tips found for ${dateStr}</h4></div>`;
       return;
     }
-
-    // Build summary pills
     const wins   = all.filter(t=>t.result==='right').length;
     const losses = all.filter(t=>t.result==='wrong').length;
     const pend   = all.filter(t=>t.result!=='right'&&t.result!=='wrong').length;
@@ -642,8 +617,6 @@ function loadResultsForDate(dateStr) {
       ${pend > 0 ? `<div class="rsm-pill"><span class="rv">${pend}</span> Pending</div>` : ''}
       ${wr !== null ? `<div class="rsm-pill"><span class="rv">${wr}%</span> Win Rate</div>` : ''}
     `;
-
-    // Group and render cards — show outcome column always in Results
     prevEl.innerHTML = '';
     const grouped = groupByLeague(all);
     Object.entries(grouped).forEach(([league, tips]) => {
@@ -651,17 +624,12 @@ function loadResultsForDate(dateStr) {
       const card = buildCard(league, tips, isPro, true);
       if (card) prevEl.appendChild(card);
     });
-
     updateAllMatchStatuses();
   }).catch(() => {
-    prevEl.innerHTML = `<div class="empty" style="color:var(--danger)">
-      <i class="fas fa-exclamation-triangle"></i>
-      <h4>Load failed</h4><p>Check your connection and try again.</p>
-    </div>`;
+    prevEl.innerHTML = `<div class="empty" style="color:var(--danger)"><i class="fas fa-exclamation-triangle"></i><h4>Load failed</h4><p>Check your connection and try again.</p></div>`;
   });
 }
 
-/* Wire up date navigation buttons */
 document.getElementById('prevDatePrev').addEventListener('click', () => {
   prevBrowseDate.setDate(prevBrowseDate.getDate() - 1);
   updateDateNavUI();
@@ -686,8 +654,6 @@ document.getElementById('prevDatePicker').addEventListener('change', e => {
   updateDateNavUI();
   loadResultsForDate(val);
 });
-
-/* ══════════════════════════════════════════ */
 
 /* ── RENDER ALL (Today + Pro) ── */
 function renderAll(snap) {
@@ -781,7 +747,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById(`sec-${tab}`).classList.add('active');
 
     if (tab === 'previous') {
-      // Reset to today's date whenever the tab is opened
       prevBrowseDate = new Date(todayKey + 'T00:00:00');
       updateDateNavUI();
       loadResultsForDate(todayKey);
@@ -803,7 +768,7 @@ function attachRealtime() {
   });
 }
 
-/* ── PAYMENT ── */
+/* ── PAYMENT FUNCTIONS (REPLACED) ── */
 function showStep(s) {
   ['stepPhone','stepWaiting','stepSuccess','stepFailed'].forEach(id => {
     const el = document.getElementById(id);
@@ -859,6 +824,7 @@ async function startPoll(ref) {
   }, 5000);
 }
 
+/* ── PAYMENT EVENT LISTENERS (REPLACED) ── */
 document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
 document.getElementById('payModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 
