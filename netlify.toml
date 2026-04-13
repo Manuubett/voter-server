@@ -1,5 +1,6 @@
 # ═══════════════════════════════════════════════════════════
 #  Bett Officials — netlify.toml
+#  Security: iframe blocking, CSP, hotlink protection & more
 # ═══════════════════════════════════════════════════════════
 
 [build]
@@ -9,21 +10,41 @@
 [[headers]]
   for = "/*"
   [headers.values]
+
+    # Block ALL iframes
     X-Frame-Options = "DENY"
+
+    # CSP — all Firebase + app domains whitelisted
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com; connect-src 'self' https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+
+    # Prevent MIME-type sniffing
     X-Content-Type-Options = "nosniff"
+
+    # Referrer policy
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
+
+    # Block browser features you don't need
+    Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+
+    # Force HTTPS for 1 year
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # XSS protection (legacy browsers)
     X-XSS-Protection = "1; mode=block"
+
+    X-Permitted-Cross-Domain-Policies = "none"
 
 # ── CACHE CONTROL ─────────────────────────────────────────
 
+# HTML — never cache (always fresh tips)
 [[headers]]
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma        = "no-cache"
+    Expires       = "0"
 
+# Images — cache 7 days
 [[headers]]
   for = "/*.png"
   [headers.values]
@@ -31,6 +52,11 @@
 
 [[headers]]
   for = "/*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*.svg"
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
@@ -43,22 +69,14 @@
   status = 301
   force  = true
 
-# Clean index.html → root
+# Clean up index.html → root
 [[redirects]]
   from   = "/index.html"
   to     = "/"
   status = 301
   force  = true
 
-# OG IMAGE — serve og-image.html when WhatsApp/crawlers
-# request og-image.png (the URL in your meta tags)
-[[redirects]]
-  from   = "/og-image.png"
-  to     = "/og-image.html"
-  status = 200
-  force  = true
-
-# Block bots / scanners
+# Block common scanner / bot paths
 [[redirects]]
   from   = "/wp-admin/*"
   to     = "/404"
@@ -71,6 +89,11 @@
 
 [[redirects]]
   from   = "/.env"
+  to     = "/404"
+  status = 404
+
+[[redirects]]
+  from   = "/config/*"
   to     = "/404"
   status = 404
 
