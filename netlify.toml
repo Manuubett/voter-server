@@ -3,77 +3,38 @@
 #  Security: iframe blocking, CSP, hotlink protection & more
 # ═══════════════════════════════════════════════════════════
 
-# ── BUILD (adjust if you add a build step later) ──────────
 [build]
   publish = "."
 
-# ── GLOBAL SECURITY HEADERS (applied to every response) ──
+# ── GLOBAL SECURITY HEADERS ───────────────────────────────
 [[headers]]
   for = "/*"
   [headers.values]
 
-    # Block ALL iframes — no one can embed your site
+    # Block ALL iframes
     X-Frame-Options = "DENY"
 
-    # Modern clickjacking protection (replaces X-Frame-Options)
-    # Change to "SAMEORIGIN" if you ever need to self-embed
-    Content-Security-Policy = """
-      default-src 'self';
-      script-src  'self' 'unsafe-inline'
-                  https://www.gstatic.com
-                  https://cdnjs.cloudflare.com
-                  https://fonts.googleapis.com;
-      style-src   'self' 'unsafe-inline'
-                  https://fonts.googleapis.com
-                  https://cdnjs.cloudflare.com;
-      font-src    'self'
-                  https://fonts.gstatic.com
-                  https://cdnjs.cloudflare.com;
-      img-src     'self' data: blob:
-                  https://i.ibb.co;
-      connect-src 'self'
-                  https://voter-server-fmfr.onrender.com
-                  https://community-caa4a-default-rtdb.firebaseio.com
-                  wss://community-caa4a-default-rtdb.firebaseio.com
-                  https://firestore.googleapis.com
-                  https://identitytoolkit.googleapis.com
-                  https://securetoken.googleapis.com;
-      frame-src   'none';
-      frame-ancestors 'none';
-      object-src  'none';
-      base-uri    'self';
-      form-action 'self';
-      upgrade-insecure-requests;
-    """
+    # CSP — all Firebase + app domains whitelisted
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com; connect-src 'self' https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
 
     # Prevent MIME-type sniffing
     X-Content-Type-Options = "nosniff"
 
-    # Full referrer on same-origin, strip on cross-origin
+    # Referrer policy
     Referrer-Policy = "strict-origin-when-cross-origin"
 
     # Block browser features you don't need
-    Permissions-Policy = """
-      geolocation=(),
-      camera=(),
-      microphone=(),
-      payment=(),
-      usb=(),
-      magnetometer=(),
-      gyroscope=(),
-      accelerometer=()
-    """
+    Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
 
-    # Force HTTPS for 1 year (including subdomains)
+    # Force HTTPS for 1 year
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
 
     # XSS protection (legacy browsers)
     X-XSS-Protection = "1; mode=block"
 
-    # Disable FLoC / Topics ad tracking
     X-Permitted-Cross-Domain-Policies = "none"
 
-# ── CACHE CONTROL ────────────────────────────────────────
+# ── CACHE CONTROL ─────────────────────────────────────────
 
 # HTML — never cache (always fresh tips)
 [[headers]]
@@ -82,12 +43,6 @@
     Cache-Control = "no-cache, no-store, must-revalidate"
     Pragma        = "no-cache"
     Expires       = "0"
-
-# Assets — cache for 1 year (fingerprinted filenames)
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
 
 # Images — cache 7 days
 [[headers]]
@@ -105,16 +60,23 @@
   [headers.values]
     Cache-Control = "public, max-age=604800"
 
-# ── REDIRECTS ────────────────────────────────────────────
+# ── REDIRECTS ─────────────────────────────────────────────
 
-# Force HTTPS (belt-and-suspenders alongside HSTS)
+# Force HTTPS
 [[redirects]]
   from   = "http://pro-prediction.bett.website/*"
   to     = "https://pro-prediction.bett.website/:splat"
   status = 301
   force  = true
 
-# Block common scanner / bot paths (404 them quietly)
+# Clean up index.html → root
+[[redirects]]
+  from   = "/index.html"
+  to     = "/"
+  status = 301
+  force  = true
+
+# Block common scanner / bot paths
 [[redirects]]
   from   = "/wp-admin/*"
   to     = "/404"
@@ -140,7 +102,7 @@
   to     = "/404"
   status = 404
 
-# SPA fallback — serves index.html for any unmatched route
+# SPA fallback
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
