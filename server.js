@@ -7,31 +7,19 @@ const admin   = require('firebase-admin');
 // ── Firebase private key sanitizer ───────────────────────────────────────────
 function sanitizePrivateKey(raw) {
   if (!raw) return null;
-  let key = raw;
-
-  // 1. Trim outer whitespace
-  key = key.trim();
-
-  // 2. Strip surrounding quotes Render/env tools sometimes add
+  let key = raw.trim();
   key = key.replace(/^["'`]+|["'`]+$/g, '').trim();
-
-  // 3. Replace literal \n with real newlines
   key = key.replace(/\\n/g, '\n');
-
-  // 4. Ensure PEM header/footer exist
   if (!key.includes('-----BEGIN PRIVATE KEY-----')) {
     key = '-----BEGIN PRIVATE KEY-----\n' + key;
   }
   if (!key.includes('-----END PRIVATE KEY-----')) {
     key = key.trimEnd() + '\n-----END PRIVATE KEY-----\n';
   }
-
-  // 5. Ensure newline immediately after header and before footer
   key = key
     .replace(/-----BEGIN PRIVATE KEY-----\s*/g, '-----BEGIN PRIVATE KEY-----\n')
-    .replace(/\s*-----END PRIVATE KEY-----/g,   '\n-----END PRIVATE KEY-----')
-    .replace(/\n{3,}/g, '\n'); // collapse triple+ newlines
-
+    .replace(/\s*-----END PRIVATE KEY-----/g, '\n-----END PRIVATE KEY-----')
+    .replace(/\n{3,}/g, '\n');
   return key;
 }
 
@@ -46,12 +34,6 @@ const {
 if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
   try {
     const privateKey = sanitizePrivateKey(FIREBASE_PRIVATE_KEY);
-
-    console.log('[Firebase] Project:    ', FIREBASE_PROJECT_ID);
-    console.log('[Firebase] Email:      ', FIREBASE_CLIENT_EMAIL);
-    console.log('[Firebase] Key starts: ', JSON.stringify(privateKey.substring(0, 40)));
-    console.log('[Firebase] Key ends:   ', JSON.stringify(privateKey.slice(-40)));
-
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId:   FIREBASE_PROJECT_ID,
@@ -59,17 +41,13 @@ if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
         privateKey,
       }),
     });
-
     db = admin.firestore();
     console.log('✅ Firebase (Firestore) connected');
   } catch (err) {
     console.error('❌ Firebase init failed:', err.message);
-    console.error('   Stack:', err.stack);
   }
 } else {
-  const missing = ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']
-    .filter(k => !process.env[k]);
-  console.warn('⚠️  Firebase not configured — missing:', missing.join(', '));
+  console.warn('⚠️  Firebase not configured — missing env vars');
 }
 
 // ── Telegram notifier ─────────────────────────────────────────────────────────
@@ -124,7 +102,7 @@ function normalisePhone(phone) {
   return p;
 }
 
-// ── Health check ──────────────────────────────────────────────────────────────
+// ── Health / debug endpoints ──────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
     status:   'ok',
@@ -136,27 +114,21 @@ app.get('/', (req, res) => {
   });
 });
 
-// ── Debug Firebase key — safe, never exposes actual key value ─────────────────
-// Visit GET /api/debug-firebase on Render to diagnose key issues
 app.get('/api/debug-firebase', (req, res) => {
-  const raw       = process.env.FIREBASE_PRIVATE_KEY || '';
+  const raw = process.env.FIREBASE_PRIVATE_KEY || '';
   const sanitized = sanitizePrivateKey(raw) || '';
   res.json({
     firebase_connected:      !!db,
     project_id_set:          !!FIREBASE_PROJECT_ID,
     client_email_set:        !!FIREBASE_CLIENT_EMAIL,
+    client_email:            FIREBASE_CLIENT_EMAIL, // shows the actual email – check for corruption
     private_key_raw_length:  raw.length,
     private_key_san_length:  sanitized.length,
     has_begin_header:        sanitized.includes('-----BEGIN PRIVATE KEY-----'),
     has_end_footer:          sanitized.includes('-----END PRIVATE KEY-----'),
-    raw_starts_with:         JSON.stringify(raw.substring(0, 10)),
-    sanitized_starts_with:   JSON.stringify(sanitized.substring(0, 40)),
-    sanitized_ends_with:     JSON.stringify(sanitized.slice(-40)),
-    newline_count:           (sanitized.match(/\n/g) || []).length,
   });
 });
 
-// ── Test Paynecta key ─────────────────────────────────────────────────────────
 app.get('/api/test', async (req, res) => {
   if (!API_KEY) return res.status(500).json({ success: false, message: 'PAYNECTA_API_KEY not set' });
   try {
@@ -170,32 +142,22 @@ app.get('/api/test', async (req, res) => {
       success: ok,
       status:  response.status,
       message: ok ? 'Paynecta API Key valid ✅' : 'Paynecta API Key rejected ❌',
-      data:    response.data,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// ── POST /pay — Initiate STK Push ─────────────────────────────────────────────
+// ── STK Push (new endpoint) ───────────────────────────────────────────────────
 app.post('/pay', async (req, res) => {
-  const { phone } = req.body;
+  const { phone, userId } = req.body; // userId optional, for tracking
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
 
   if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE) {
-    return res.status(500).json({
-      success: false,
-      error: 'Server misconfigured — PAYNECTA_API_KEY, PAYNECTA_EMAIL, PAYNECTA_CODE must be set',
-    });
-  }
-
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length < 9 || digits.length > 13) {
-    return res.status(400).json({ success: false, error: 'Invalid phone number format' });
+    return res.status(500).json({ success: false, error: 'Server misconfigured – missing Paynecta credentials' });
   }
 
   const mobile = normalisePhone(phone);
-
   try {
     const payload = {
       code:          MERCHANT_CODE,
@@ -212,74 +174,50 @@ app.post('/pay', async (req, res) => {
       timeout: 15000,
     });
 
-    // Extract txRef — handle all known Paynecta response shapes
-    const txRef =
-      response.data?.data?.transaction_reference ||
-      response.data?.data?.CheckoutRequestID     ||
-      response.data?.transaction_reference       ||
-      response.data?.reference                   ||
-      `BETT-${Date.now()}`;
+    const txRef = response.data?.data?.transaction_reference ||
+                  response.data?.data?.CheckoutRequestID     ||
+                  response.data?.transaction_reference       ||
+                  `BETT-${Date.now()}`;
 
     if (db) {
-      try {
-        await db.collection('proPayments').doc(txRef).set({
-          phone:     mobile,
-          amount:    PRO_PRICE,
-          txRef,
-          status:    'pending',
-          createdAt: new Date().toISOString(),
-        });
-        console.log('[STK] Firestore record saved — txRef:', txRef);
-      } catch (fsErr) {
-        // Firebase write failed but STK push already sent — don't fail the request
-        console.error('[STK] ⚠️  Firestore write failed (STK still sent):', fsErr.message);
-      }
+      await db.collection('proPayments').doc(txRef).set({
+        phone:     mobile,
+        amount:    PRO_PRICE,
+        userId:    userId || null,
+        txRef,
+        status:    'pending',
+        createdAt: new Date().toISOString(),
+      }).catch(err => console.error('[STK] Firestore write failed:', err.message));
     }
 
-    console.log('[STK] ✅ — txRef:', txRef);
+    console.log('[STK] ✅ txRef:', txRef);
+    sendTelegram(`📱 <b>STK PUSH SENT</b>\n📞 ${mobile}\n💰 Ksh ${PRO_PRICE}\n🆔 ${txRef}`);
 
-    sendTelegram(
-      `📱 <b>STK PUSH SENT</b>\n\n` +
-      `📞 Phone: <code>${mobile}</code>\n` +
-      `💰 Amount: Ksh ${PRO_PRICE}\n` +
-      `🆔 txRef: <code>${txRef}</code>\n` +
-      `⏰ ${new Date().toLocaleString('en-KE')}`
-    );
-
-    res.json({
-      success:   true,
-      reference: txRef,
-      message:   'STK push sent. Enter M-Pesa PIN on your phone.',
-    });
-
+    res.json({ success: true, reference: txRef, message: 'STK push sent. Check your phone.' });
   } catch (err) {
     const errData = err.response?.data || err.message;
     console.error('[STK] Error:', errData);
-    res.status(400).json({
-      success: false,
-      error:   err.response?.data?.message || 'Failed to initiate payment. Try again.',
-    });
+    res.status(400).json({ success: false, error: 'Failed to initiate payment. Try again.' });
   }
 });
 
-// ── GET /pay/status/:txRef — Poll payment status ──────────────────────────────
+// ── Legacy compatibility (if your frontend still calls /api/stk-push) ─────────
+app.post('/api/stk-push', async (req, res) => {
+  req.url = '/pay';
+  app._router.handle(req, res);
+});
+
+// ── Payment status (new endpoint) ────────────────────────────────────────────
 app.get('/pay/status/:txRef', async (req, res) => {
   const { txRef } = req.params;
-  if (!txRef || txRef.length < 5) {
-    return res.status(400).json({ success: false, error: 'Invalid txRef' });
-  }
+  if (!txRef || txRef.length < 5) return res.status(400).json({ success: false, error: 'Invalid txRef' });
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
 
   try {
     const snap = await db.collection('proPayments').doc(txRef).get();
     if (!snap.exists) return res.json({ success: true, status: 'pending' });
-
-    const data   = snap.data();
-    const status = (data.status === 'completed' || data.status === 'confirmed')
-      ? 'completed'
-      : data.status || 'pending';
-
-    console.log('[STATUS]', status, '— txRef:', txRef);
+    const data = snap.data();
+    const status = (data.status === 'completed' || data.status === 'confirmed') ? 'completed' : (data.status || 'pending');
     return res.json({ success: true, status, unlocked: status === 'completed' });
   } catch (err) {
     console.error('[STATUS] Error:', err.message);
@@ -287,142 +225,84 @@ app.get('/pay/status/:txRef', async (req, res) => {
   }
 });
 
-// ── POST /api/webhook — Paynecta callback ─────────────────────────────────────
+// ── Legacy status endpoint compatibility ──────────────────────────────────────
+app.get('/api/pay/status/:txRef', async (req, res) => {
+  req.url = `/pay/status/${req.params.txRef}`;
+  app._router.handle(req, res);
+});
+
+// ── Webhook (Paynecta callback) ──────────────────────────────────────────────
 app.post('/api/webhook', async (req, res) => {
-  res.json({ received: true }); // ACK immediately
+  res.json({ received: true }); // immediate ACK
 
   try {
-    const payload   = req.body;
-    const data      = payload.data || {};
-    const tx        = data.transaction || {};
+    const payload = req.body;
+    const data = payload.data || {};
+    const tx = data.transaction || {};
 
-    const txRef =
-      tx.reference               ||
-      tx.transaction_reference   ||
-      data.reference             ||
-      data.transaction_reference ||
-      payload.reference          ||
-      null;
-
+    const txRef = tx.reference || data.reference || payload.reference || null;
     const rawStatus = tx.status || data.status || payload.status;
-    const eventType = payload.event_type || payload.event || payload.type;
+    const eventType = payload.event_type || payload.event;
     const mpesaCode = data.MpesaReceiptNumber || data.mpesa_receipt || null;
-    const amount    = data.Amount || data.amount || null;
-    const mobile    = data.customer?.mobile_number || data.phone || null;
+    const mobile = data.customer?.mobile_number || data.phone || null;
 
-    console.log('[Webhook]', JSON.stringify({ eventType, txRef, rawStatus, mpesaCode }));
+    console.log('[Webhook]', { eventType, txRef, rawStatus, mpesaCode });
 
-    if (!db || !txRef) {
-      console.warn('[Webhook] Skipping — missing db or txRef');
-      return;
-    }
+    if (!db || !txRef) return;
 
-    const isCompleted =
-      eventType === 'payment.completed' ||
-      ['completed','confirmed','success','SUCCESS','COMPLETE'].includes(rawStatus);
-
-    const isFailed =
-      eventType === 'payment.failed' ||
-      ['failed','FAILED','cancelled','CANCELLED','timeout','TIMEOUT'].includes(rawStatus);
+    const isCompleted = eventType === 'payment.completed' || ['completed','confirmed','success'].includes(rawStatus);
+    const isFailed = eventType === 'payment.failed' || ['failed','cancelled','timeout'].includes(rawStatus);
 
     if (isCompleted) {
-      try {
-        await db.collection('proPayments').doc(txRef).set(
-          { status: 'completed', mpesaCode, completedAt: new Date().toISOString() },
-          { merge: true }
-        );
+      await db.collection('proPayments').doc(txRef).set({
+        status: 'completed',
+        mpesaCode,
+        completedAt: new Date().toISOString()
+      }, { merge: true });
 
-        const paySnap   = await db.collection('proPayments').doc(txRef).get();
-        const payData   = paySnap.exists ? paySnap.data() : {};
-        const safePhone = (payData.phone || mobile || '').replace(/[^0-9]/g, '');
-
-        if (safePhone) {
-          await db.collection('proSubscribers').doc(safePhone).set({
-            phone:      payData.phone || mobile,
-            txRef,
-            mpesaCode,
-            unlockedAt: new Date().toISOString(),
-            amount:     payData.amount || amount || PRO_PRICE,
-          });
-          console.log(`✅ Pro unlocked — phone: ${safePhone}`);
-        }
-
-        sendTelegram(
-          `💚 <b>PAYMENT CONFIRMED</b> 💚\n\n` +
-          `📞 Phone: <code>${payData.phone || mobile || '—'}</code>\n` +
-          `💰 Amount: Ksh ${payData.amount || amount || PRO_PRICE}\n` +
-          `🧾 M-Pesa Code: <b>${mpesaCode || '—'}</b>\n` +
-          `🆔 txRef: <code>${txRef}</code>\n` +
-          `⏰ ${new Date().toLocaleString('en-KE')}`
-        );
-      } catch (fsErr) {
-        console.error('[Webhook] ⚠️  Firestore write failed on completed payment:', fsErr.message);
-        // Still notify Telegram so payment can be manually recorded
-        sendTelegram(
-          `⚠️ <b>FIRESTORE ERROR — MANUAL ACTION NEEDED</b>\n\n` +
-          `🆔 txRef: <code>${txRef}</code>\n` +
-          `🧾 M-Pesa: <b>${mpesaCode || '—'}</b>\n` +
-          `📞 Phone: <code>${mobile || '—'}</code>\n` +
-          `❗ Error: ${fsErr.message}\n` +
-          `⏰ ${new Date().toLocaleString('en-KE')}`
-        );
+      const paySnap = await db.collection('proPayments').doc(txRef).get();
+      const payData = paySnap.data();
+      const safePhone = (payData.phone || mobile || '').replace(/\D/g, '');
+      if (safePhone) {
+        await db.collection('proSubscribers').doc(safePhone).set({
+          phone: payData.phone || mobile,
+          txRef,
+          mpesaCode,
+          unlockedAt: new Date().toISOString(),
+          amount: payData.amount || PRO_PRICE,
+        });
+        console.log(`✅ Pro unlocked — ${safePhone}`);
       }
-
+      sendTelegram(`💚 <b>PAYMENT CONFIRMED</b>\n📞 ${payData.phone || mobile}\n💰 Ksh ${payData.amount || PRO_PRICE}\n🧾 ${mpesaCode}\n🆔 ${txRef}`);
     } else if (isFailed) {
-      try {
-        await db.collection('proPayments').doc(txRef).set(
-          { status: 'failed', failedAt: new Date().toISOString() },
-          { merge: true }
-        );
-      } catch (fsErr) {
-        console.error('[Webhook] ⚠️  Firestore write failed on failed payment:', fsErr.message);
-      }
-      console.log(`❌ Payment failed — ref: ${txRef}`);
-
-      sendTelegram(
-        `❌ <b>PAYMENT FAILED</b>\n\n` +
-        `🆔 txRef: <code>${txRef}</code>\n` +
-        `📞 Phone: <code>${mobile || '—'}</code>\n` +
-        `⏰ ${new Date().toLocaleString('en-KE')}`
-      );
-
+      await db.collection('proPayments').doc(txRef).set({ status: 'failed', failedAt: new Date().toISOString() }, { merge: true });
+      console.log(`❌ Payment failed — ${txRef}`);
+      sendTelegram(`❌ <b>PAYMENT FAILED</b>\n🆔 ${txRef}\n📞 ${mobile || '—'}`);
     } else {
-      try {
-        await db.collection('proPayments').doc(txRef).set(
-          { lastEvent: eventType, lastRawStatus: rawStatus },
-          { merge: true }
-        );
-      } catch (fsErr) {
-        console.error('[Webhook] ⚠️  Firestore write failed on unknown event:', fsErr.message);
-      }
-      console.log(`ℹ️  Unhandled event: ${eventType}/${rawStatus} — txRef: ${txRef}`);
+      await db.collection('proPayments').doc(txRef).set({ lastEvent: eventType, lastRawStatus: rawStatus }, { merge: true });
+      console.log(`ℹ️ Unhandled event: ${eventType}`);
     }
-
   } catch (err) {
     console.error('[Webhook] Error:', err.message);
   }
 });
 
-// ── GET /pro/check/:phone — Verify pro subscriber ─────────────────────────────
+// ── Check pro status by phone ─────────────────────────────────────────────────
 app.get('/pro/check/:phone', async (req, res) => {
-  const phone = req.params.phone.replace(/[^0-9]/g, '');
+  const phone = req.params.phone.replace(/\D/g, '');
   if (!phone) return res.status(400).json({ success: false, error: 'Invalid phone' });
-  if (!db)    return res.status(503).json({ success: false, error: 'Firebase not configured' });
+  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
   try {
     const snap = await db.collection('proSubscribers').doc(phone).get();
-    return res.json({ success: true, isPro: snap.exists, data: snap.exists ? snap.data() : null });
+    res.json({ success: true, isPro: snap.exists, data: snap.exists ? snap.data() : null });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// ── Catch unhandled rejections ────────────────────────────────────────────────
-process.on('unhandledRejection', (reason) => {
-  console.error('⚠️  Unhandled Promise Rejection:', reason);
-});
-
-// ── Start ─────────────────────────────────────────────────────────────────────
+// ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
   console.log(`💰 Pro price: KES ${PRO_PRICE}`);
+  console.log(`🔗 Webhook URL: ${SERVER_BASE}/api/webhook`);
 });
