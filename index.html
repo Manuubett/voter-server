@@ -99,6 +99,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <style>
+/* (your existing CSS unchanged) */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#080c14;--surface:#0f1623;--surface2:#161e2e;
@@ -310,6 +311,150 @@ footer{border-top:1px solid var(--border);text-align:center;padding:1.8rem 1rem;
 </style>
 </head>
 <body>
+
+<!-- ==================== DEBUG PANEL + LOGGING ==================== -->
+<div id="debugPanel" style="position:fixed; bottom:10px; right:10px; background:#000c; color:#0f0; font-family:monospace; font-size:11px; padding:8px 12px; border-radius:8px; z-index:9999; backdrop-filter:blur(4px); max-width:280px; border-left:3px solid #e6007e; pointer-events:auto; cursor:pointer; transition:opacity 0.2s;" onclick="this.style.opacity=this.style.opacity==='0.3'?'1':'0.3'">
+  <div><strong>🔍 DEBUG</strong> <span id="debugOrigin"></span></div>
+  <div id="debugStatus">Initializing...</div>
+  <div style="font-size:9px; margin-top:4px;">Click to dim/restore</div>
+</div>
+
+<script>
+(function() {
+  // ========== DEBUG UTILITIES ==========
+  const DEBUG_PREFIX = '[DEBUG]';
+  const origin = window.location.origin;
+  const fullUrl = window.location.href;
+  const isCustomDomain = !origin.includes('netlify.app');
+  
+  console.log(DEBUG_PREFIX, '=== PAGE START ===');
+  console.log(DEBUG_PREFIX, 'Full URL:', fullUrl);
+  console.log(DEBUG_PREFIX, 'Origin:', origin);
+  console.log(DEBUG_PREFIX, 'Is custom domain?', isCustomDomain);
+  console.log(DEBUG_PREFIX, 'User Agent:', navigator.userAgent);
+  
+  // Update debug panel
+  const debugOriginSpan = document.getElementById('debugOrigin');
+  if (debugOriginSpan) debugOriginSpan.textContent = ' ' + (isCustomDomain ? 'CUSTOM' : 'NETLIFY');
+  const debugStatusDiv = document.getElementById('debugStatus');
+  
+  function setDebugStatus(msg) {
+    if (debugStatusDiv) debugStatusDiv.textContent = msg;
+    console.log(DEBUG_PREFIX, 'Status:', msg);
+  }
+  setDebugStatus('Loaded - watching CSP');
+  
+  // ========== CSP VIOLATION CAPTURE ==========
+  document.addEventListener('securitypolicyviolation', (e) => {
+    console.error(DEBUG_PREFIX, '🚨 CSP VIOLATION:', {
+      blockedURI: e.blockedURI,
+      violatedDirective: e.violatedDirective,
+      effectiveDirective: e.effectiveDirective,
+      originalPolicy: e.originalPolicy,
+      sourceFile: e.sourceFile,
+      lineNumber: e.lineNumber,
+      columnNumber: e.columnNumber
+    });
+    setDebugStatus(`CSP blocked: ${e.blockedURI.substring(0, 40)}`);
+  });
+  
+  // ========== GLOBAL ERROR HANDLING ==========
+  window.addEventListener('error', (e) => {
+    console.error(DEBUG_PREFIX, 'Global error:', e.message, 'at', e.filename, 'line', e.lineno);
+    setDebugStatus(`JS error: ${e.message.substring(0, 40)}`);
+  });
+  
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error(DEBUG_PREFIX, 'Unhandled promise rejection:', e.reason);
+    setDebugStatus(`Promise reject: ${String(e.reason).substring(0, 40)}`);
+  });
+  
+  // ========== MONITOR FIREBASE INIT ==========
+  const originalFirebaseInit = window.firebase ? window.firebase.initializeApp : null;
+  let firebaseInitialized = false;
+  Object.defineProperty(window, 'firebase', {
+    configurable: true,
+    get: () => window._firebase,
+    set: (val) => {
+      console.log(DEBUG_PREFIX, 'Firebase object assigned');
+      window._firebase = val;
+      if (val && !firebaseInitialized) {
+        console.log(DEBUG_PREFIX, 'Firebase appears ready');
+        setDebugStatus('Firebase ready');
+        firebaseInitialized = true;
+      }
+    }
+  });
+  
+  // ========== OVERRIDE FETCH TO LOG M-PESA CALLS ==========
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const url = args[0];
+    if (typeof url === 'string' && url.includes('voter-server-fmfr.onrender.com')) {
+      console.log(DEBUG_PREFIX, '🌐 FETCH to backend:', url, args[1] || {});
+    }
+    return originalFetch.apply(this, args).catch(err => {
+      console.error(DEBUG_PREFIX, '❌ FETCH failed:', url, err);
+      setDebugStatus(`Fetch error: ${err.message.substring(0, 40)}`);
+      throw err;
+    });
+  };
+  
+  // ========== LOG DOM CONTENT LOADED ==========
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log(DEBUG_PREFIX, 'DOMContentLoaded – page structure ready');
+    setDebugStatus('DOM ready, waiting for data');
+  });
+  
+  // ========== EXPOSE HELPER FOR CONSOLE ==========
+  window.__debug = {
+    checkProUnlocked: () => localStorage.getItem('pro_unlocked'),
+    checkProDate: () => localStorage.getItem('pro_unlock_date'),
+    currentOrigin: origin,
+    isCustomDomain: isCustomDomain
+  };
+  console.log(DEBUG_PREFIX, 'Debug helper available: window.__debug');
+  
+  // ========== OVERRIDE RENDERALL TO LOG DATA ==========
+  // We'll patch after the original function is defined (defer to later)
+  setTimeout(() => {
+    if (window.renderAll) {
+      const origRenderAll = window.renderAll;
+      window.renderAll = function(snap) {
+        console.log(DEBUG_PREFIX, '📊 renderAll called');
+        try {
+          const data = snap.val();
+          console.log(DEBUG_PREFIX, 'Firebase data received:', data ? Object.keys(data) : 'null');
+          if (data) {
+            let tipCount = 0;
+            for (let league in data) {
+              if (data[league].tips) tipCount += Object.keys(data[league].tips).length;
+            }
+            console.log(DEBUG_PREFIX, `Total tips in snapshot: ${tipCount}`);
+            setDebugStatus(`Data loaded: ${tipCount} tips`);
+          } else {
+            console.warn(DEBUG_PREFIX, 'No data in Firebase snapshot');
+            setDebugStatus('No data from Firebase');
+          }
+        } catch(e) {
+          console.error(DEBUG_PREFIX, 'Error in renderAll:', e);
+          setDebugStatus(`renderAll error: ${e.message}`);
+        }
+        return origRenderAll.call(this, snap);
+      };
+      console.log(DEBUG_PREFIX, 'Patched renderAll for logging');
+    } else {
+      console.warn(DEBUG_PREFIX, 'renderAll not yet defined, will retry');
+      setTimeout(arguments.callee, 500);
+    }
+  }, 500);
+  
+  // ========== LOG ANY CSP META OR HEADER ==========
+  console.log(DEBUG_PREFIX, 'CSP meta tags:', document.querySelector('meta[http-equiv="Content-Security-Policy"]'));
+  console.log(DEBUG_PREFIX, 'All meta tags:', document.querySelectorAll('meta').length);
+})();
+</script>
+<!-- ==================== END DEBUG ==================== -->
 
 <header class="header">
   <div class="header-inner">
