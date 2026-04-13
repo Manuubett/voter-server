@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════
-#  Bett Officials — netlify.toml (FIXED for source maps + scripts)
+#  Bett Officials — netlify.toml (FIXED for Cloudflare beacon)
 # ═══════════════════════════════════════════════════════════
 
 [build]
@@ -10,7 +10,7 @@
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
-    Content-Security-Policy = "default-src 'self' https://today-tips.netlify.app; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com https://today-tips.netlify.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com https://today-tips.netlify.app; connect-src 'self' https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://today-tips.netlify.app https://www.gstatic.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+    Content-Security-Policy = "default-src 'self' https://today-tips.netlify.app; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com https://today-tips.netlify.app https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com https://today-tips.netlify.app; connect-src 'self' https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://today-tips.netlify.app https://www.gstatic.com https://static.cloudflareinsights.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
@@ -84,3 +84,4 @@
   from   = "/*"
   to     = "/index.html"
   status = 200
+  
