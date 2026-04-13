@@ -1,45 +1,57 @@
 # ═══════════════════════════════════════════════════════════
-#  Bett Officials — netlify.toml
+#  Bett Officials — netlify.toml (FIXED for custom domain)
 # ═══════════════════════════════════════════════════════════
+
 [build]
   publish = "."
+
 # ── GLOBAL SECURITY HEADERS ───────────────────────────────
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options = "DENY"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://*.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com; connect-src 'self' https://*.gstatic.com https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
+    # FIX: Added https://today-tips.netlify.app to allow resources from the Netlify subdomain
+    # when the site is accessed via pro-prediction.bett.website
+    Content-Security-Policy = "default-src 'self' https://today-tips.netlify.app; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://apis.google.com https://today-tips.netlify.app; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com https://today-tips.netlify.app; img-src 'self' data: blob: https://i.ibb.co https://*.googleapis.com https://*.gstatic.com https://today-tips.netlify.app; connect-src 'self' https://voter-server-fmfr.onrender.com https://community-caa4a-default-rtdb.firebaseio.com wss://community-caa4a-default-rtdb.firebaseio.com https://*.firebaseio.com wss://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.googleapis.com https://today-tips.netlify.app; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), camera=(), microphone=(), payment=(), usb=()"
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     X-XSS-Protection = "1; mode=block"
+
 # ── CACHE CONTROL ─────────────────────────────────────────
+
 [[headers]]
   for = "/*.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
+
 [[headers]]
   for = "/*.png"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
 [[headers]]
   for = "/*.jpg"
   [headers.values]
     Cache-Control = "public, max-age=604800"
+
 # ── REDIRECTS ─────────────────────────────────────────────
+
 # Force HTTPS
 [[redirects]]
   from   = "http://pro-prediction.bett.website/*"
   to     = "https://pro-prediction.bett.website/:splat"
   status = 301
   force  = true
+
 # Clean index.html → root
 [[redirects]]
   from   = "/index.html"
   to     = "/"
   status = 301
   force  = true
+
 # OG IMAGE — serve og-image.html when WhatsApp/crawlers
 # request og-image.png (the URL in your meta tags)
 [[redirects]]
@@ -47,23 +59,28 @@
   to     = "/og-image.html"
   status = 200
   force  = true
+
 # Block bots / scanners
 [[redirects]]
   from   = "/wp-admin/*"
   to     = "/404"
   status = 404
+
 [[redirects]]
   from   = "/wp-login.php"
   to     = "/404"
   status = 404
+
 [[redirects]]
   from   = "/.env"
   to     = "/404"
   status = 404
+
 [[redirects]]
   from   = "/admin/*"
   to     = "/404"
   status = 404
+
 # SPA fallback
 [[redirects]]
   from   = "/*"
