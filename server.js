@@ -109,9 +109,7 @@ function normalisePhone(phone) {
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
 // League name → ESPN slug mapping
-// Add more slugs as needed: https://site.api.espn.com/apis/site/v2/sports/soccer/{slug}/scoreboard
 const LEAGUE_SLUGS = {
-  // Full names (what admin types)
   'Premier League':          'eng.1',
   'Premier League (ENG)':    'eng.1',
   'La Liga':                 'esp.1',
@@ -146,9 +144,16 @@ const LEAGUE_SLUGS = {
   'Ligue 2':                 'fra.2',
 };
 
+// Track sync stats
+let syncStats = {
+  lastRun: null,
+  tipsUpdated: 0,
+  errors: 0,
+  leaguesFetched: 0
+};
+
 /**
- * Classify a tip result from ESPN match data.
- * Supports: Home Win/1, Away Win/2, Draw/X, BTTS, Over N.N, Under N.N, 1X, X2, 12
+ * Classify a tip result from ESPN match data
  */
 function classify(prediction, score, winner) {
   if (!prediction || !score) return null;
@@ -174,23 +179,32 @@ function classify(prediction, score, winner) {
     const line = parseFloat(p.replace(/[^0-9.]/g, ''));
     if (!isNaN(line)) return tot < line ? 'right' : 'wrong';
   }
-  return null; // unknown market — leave as pending
+  return null;
 }
 
 /**
- * Fetch ESPN scoreboard for a given league slug.
+ * Fetch ESPN scoreboard with retry logic
  */
-async function fetchESPNScoreboard(slug) {
+async function fetchESPNScoreboard(slug, retries = 2) {
   const url = `${ESPN_BASE}/${slug}/scoreboard`;
-  const res = await axios.get(url, {
-    headers: { 'User-Agent': 'BettOfficials/1.0' },
-    timeout: 10000,
-  });
-  return res.data;
+  
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await axios.get(url, {
+        headers: { 'User-Agent': 'BettOfficials/1.0' },
+        timeout: 10000,
+      });
+      return res.data;
+    } catch (err) {
+      if (i === retries) throw err;
+      console.log(`[ESPN] Retry ${i + 1}/${retries} for ${slug}`);
+      await new Promise(r => setTimeout(r, 2000 * (i + 1))); // Exponential backoff
+    }
+  }
 }
 
 /**
- * Parse a raw ESPN event object into a clean data structure.
+ * Parse a raw ESPN event object
  */
 function parseESPNEvent(ev) {
   const comp       = ev.competitions?.[0];
@@ -226,17 +240,32 @@ function parseESPNEvent(ev) {
 }
 
 /**
- * Main sync function — reads today's Firestore tips, fetches ESPN, writes back scores/results.
+ * Main sync function with improved error handling
  */
 async function espnSyncDay() {
-  if (!db) return;
+  const startTime = Date.now();
+  
+  if (!db) {
+    console.error('[ESPN] Firestore not available');
+    return;
+  }
 
   const todayKey = new Date().toISOString().split('T')[0];
   const tipsRef  = db.collection('tips').doc(todayKey);
 
   let snap;
-  try { snap = await tipsRef.get(); } catch (e) { console.error('[ESPN] Firestore read error:', e.message); return; }
-  if (!snap.exists) return;
+  try { 
+    snap = await tipsRef.get(); 
+  } catch (e) { 
+    console.error('[ESPN] Firestore read error:', e.message);
+    syncStats.errors++;
+    return; 
+  }
+  
+  if (!snap.exists) {
+    console.log(`[ESPN] No tips for ${todayKey}`);
+    return;
+  }
 
   const data = snap.data() || {};
 
@@ -247,27 +276,50 @@ async function espnSyncDay() {
   for (const leagueKey of Object.keys(data)) {
     const tips = data[leagueKey]?.tips || {};
     for (const tip of Object.values(tips)) {
-      if (tip?.espnId) { espnIdSet.add(String(tip.espnId)); leagueSet.add(leagueKey); }
+      if (tip?.espnId) { 
+        espnIdSet.add(String(tip.espnId)); 
+        leagueSet.add(leagueKey); 
+      }
     }
   }
 
-  if (!espnIdSet.size) return; // nothing to sync
+  if (!espnIdSet.size) {
+    console.log('[ESPN] No ESPN IDs found in tips');
+    return;
+  }
 
-  // Fetch ESPN events for each relevant league
+  console.log(`[ESPN] Syncing ${espnIdSet.size} matches across ${leagueSet.size} leagues`);
+
+  // Fetch ESPN events for each relevant league with delay to avoid rate limiting
   const eventMap = {};
+  let leaguesFetched = 0;
+  
   for (const leagueKey of leagueSet) {
     const slug = LEAGUE_SLUGS[leagueKey];
-    if (!slug) { console.warn(`[ESPN] No slug for: "${leagueKey}"`); continue; }
+    if (!slug) { 
+      console.warn(`[ESPN] No slug for: "${leagueKey}"`); 
+      continue; 
+    }
+    
     try {
+      // Add delay between league requests to avoid rate limiting
+      if (leaguesFetched > 0) {
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      
       const json   = await fetchESPNScoreboard(slug);
       const events = json?.events || [];
+      
       for (const ev of events) {
         const parsed = parseESPNEvent(ev);
         eventMap[parsed.espnId] = parsed;
       }
+      
+      leaguesFetched++;
       console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events`);
     } catch (err) {
       console.error(`[ESPN] Failed to fetch ${leagueKey}:`, err.message);
+      syncStats.errors++;
     }
   }
 
@@ -279,6 +331,7 @@ async function espnSyncDay() {
     const tips = data[leagueKey]?.tips || {};
     for (const [tipId, tip] of Object.entries(tips)) {
       if (!tip?.espnId) continue;
+      
       const ev = eventMap[String(tip.espnId)];
       if (!ev) continue;
 
@@ -288,8 +341,11 @@ async function espnSyncDay() {
         updates[`${pfx}.liveScore`] = ev.scoreStr;
         updates[`${pfx}.outcome`]   = ev.scoreStr;
       }
+      
       updates[`${pfx}.isLive`]     = ev.isLive;
       updates[`${pfx}.isFinished`] = ev.isFinished;
+      updates[`${pfx}.lastUpdated`] = admin.firestore.FieldValue.serverTimestamp();
+      
       if (ev.clock)  updates[`${pfx}.clock`]  = ev.clock;
       if (ev.period) updates[`${pfx}.period`] = ev.period;
 
@@ -298,20 +354,38 @@ async function espnSyncDay() {
         const verdict = classify(tip.prediction, ev.score, ev.winner);
         if (verdict) {
           updates[`${pfx}.result`] = verdict;
-          console.log(`[ESPN] Auto-result: ${tip.matchup} → ${verdict} (${ev.scoreStr})`);
+          console.log(`[ESPN] Auto-result: ${tip.matchup || tipId} → ${verdict} (${ev.scoreStr})`);
+          
+          // Send Telegram notification for important results
+          if (verdict === 'right') {
+            await sendTelegram(`🎯 <b>WINNER!</b>\n${tip.matchup || 'Match'}\nPrediction: ${tip.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
+          }
         }
       }
       changed++;
     }
   }
 
-  if (changed > 0) {
+  if (changed > 0 && Object.keys(updates).length > 0) {
     try {
       await tipsRef.update(updates);
-      console.log(`[ESPN] ✅ Updated ${changed} tips for ${todayKey}`);
+      const duration = Date.now() - startTime;
+      console.log(`[ESPN] ✅ Updated ${Object.keys(updates).length} fields for ${changed} tips in ${duration}ms`);
+      
+      // Update sync stats
+      syncStats = {
+        lastRun: new Date().toISOString(),
+        tipsUpdated: changed,
+        errors: syncStats.errors,
+        leaguesFetched,
+        duration
+      };
     } catch (err) {
       console.error('[ESPN] Firestore update error:', err.message);
+      syncStats.errors++;
     }
+  } else {
+    console.log(`[ESPN] No updates needed for ${todayKey}`);
   }
 
   // Write daily stats summary
@@ -319,7 +393,8 @@ async function espnSyncDay() {
     let total=0, wins=0, losses=0, live=0;
     for (const lk of Object.keys(data)) {
       for (const t of Object.values(data[lk]?.tips || {})) {
-        if (!t) continue; total++;
+        if (!t) continue; 
+        total++;
         if (t.result === 'right') wins++;
         if (t.result === 'wrong') losses++;
         if (t.isLive)             live++;
@@ -330,32 +405,56 @@ async function espnSyncDay() {
       { total, wins, losses, live, winRate: wr, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
       { merge: true }
     );
-  } catch(e) { /* non-critical */ }
+  } catch(e) { 
+    console.error('[ESPN] Stats update error:', e.message);
+  }
 }
 
-// Start ESPN cron — every 60 seconds
-const ESPN_INTERVAL = 60_000;
+// Start ESPN cron with better error handling
+let isSyncing = false; // Prevent overlapping syncs
+
+async function safeEspnSync() {
+  if (isSyncing) {
+    console.log('[ESPN] Previous sync still running, skipping...');
+    return;
+  }
+  
+  isSyncing = true;
+  try {
+    await espnSyncDay();
+  } catch (err) {
+    console.error('[ESPN] Sync error:', err);
+    syncStats.errors++;
+  } finally {
+    isSyncing = false;
+  }
+}
+
+const ESPN_INTERVAL = 60_000; // 60 seconds
 console.log('[ESPN] Cron starting — syncing every 60s');
+
+// Initial sync after 5 seconds to let Firebase init
 setTimeout(() => {
-  espnSyncDay().catch(e => console.error('[ESPN] Initial sync error:', e.message));
-  setInterval(() => espnSyncDay().catch(e => console.error('[ESPN] Cron error:', e.message)), ESPN_INTERVAL);
-}, 5000); // 5s delay to let Firebase init settle
+  safeEspnSync().catch(e => console.error('[ESPN] Initial sync error:', e.message));
+  setInterval(() => safeEspnSync().catch(e => console.error('[ESPN] Cron error:', e.message)), ESPN_INTERVAL);
+}, 5000);
 
 // ════════════════════════════════════════════════════════════════════════════
-// ESPN PROXY ENDPOINTS  (used by admin panel for match lookup)
+// ESPN PROXY ENDPOINTS
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
  * GET /api/espn/search?slug=eng.1&q=Arsenal
- * Returns today's events for a league slug, optionally filtered by team name.
- * Used by admin panel "ESPN ID" lookup field.
+ * Returns today's events for a league slug
  */
 app.get('/api/espn/search', async (req, res) => {
   const { slug, q } = req.query;
   if (!slug) return res.status(400).json({ success: false, error: 'slug required' });
+  
   try {
     const json   = await fetchESPNScoreboard(slug);
     let events   = (json?.events || []).map(parseESPNEvent);
+    
     if (q) {
       const query = q.toLowerCase();
       events = events.filter(e =>
@@ -364,6 +463,7 @@ app.get('/api/espn/search', async (req, res) => {
         e.shortName.toLowerCase().includes(query)
       );
     }
+    
     res.json({ success: true, events });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -372,14 +472,40 @@ app.get('/api/espn/search', async (req, res) => {
 
 /**
  * GET /api/espn/leagues
- * Returns the full LEAGUE_SLUGS map so the admin panel can populate its dropdown.
+ * Returns league slugs for admin dropdown
  */
 app.get('/api/espn/leagues', (req, res) => {
   res.json({ success: true, leagues: LEAGUE_SLUGS });
 });
 
+/**
+ * GET /api/espn/sync-status
+ * Returns sync statistics for monitoring
+ */
+app.get('/api/espn/sync-status', (req, res) => {
+  res.json({ 
+    success: true, 
+    syncStats,
+    isRunning: isSyncing,
+    firebaseConnected: !!db
+  });
+});
+
+/**
+ * POST /api/espn/manual-sync
+ * Manually trigger a sync (admin only - add auth in production)
+ */
+app.post('/api/espn/manual-sync', async (req, res) => {
+  try {
+    await safeEspnSync();
+    res.json({ success: true, message: 'Sync triggered', syncStats });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ════════════════════════════════════════════════════════════════════════════
-// EXISTING ROUTES (unchanged)
+// EXISTING ROUTES (preserved)
 // ════════════════════════════════════════════════════════════════════════════
 
 // ── Health / debug endpoints ──────────────────────────────────────────────────
@@ -392,6 +518,7 @@ app.get('/', (req, res) => {
     paynecta: API_KEY ? 'configured' : 'missing key',
     price:    `KES ${PRO_PRICE}`,
     espnSync: 'active (60s interval)',
+    syncStats
   });
 });
 
@@ -582,5 +709,6 @@ app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
   console.log(`💰 Pro price: KES ${PRO_PRICE}`);
   console.log(`🔗 Webhook URL: ${SERVER_BASE}/api/webhook`);
-  console.log(`📡 ESPN Sync: active`);
+  console.log(`📡 ESPN Sync: active with monitoring endpoints`);
+  console.log(`📊 Sync status: /api/espn/sync-status`);
 });
