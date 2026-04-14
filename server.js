@@ -23,15 +23,16 @@ function sanitizePrivateKey(raw) {
   return key;
 }
 
-// ── Firebase init ─────────────────────────────────────────────────────────────
+// ── Firebase Realtime Database init (NOT Firestore!) ─────────────────────────
 let db;
 const {
   FIREBASE_PROJECT_ID,
   FIREBASE_CLIENT_EMAIL,
   FIREBASE_PRIVATE_KEY,
+  FIREBASE_DATABASE_URL,
 } = process.env;
 
-if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY && FIREBASE_DATABASE_URL) {
   try {
     const privateKey = sanitizePrivateKey(FIREBASE_PRIVATE_KEY);
     admin.initializeApp({
@@ -40,14 +41,15 @@ if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
         clientEmail: FIREBASE_CLIENT_EMAIL,
         privateKey,
       }),
+      databaseURL: FIREBASE_DATABASE_URL,  // THIS IS CRITICAL!
     });
-    db = admin.firestore();
-    console.log('✅ Firebase (Firestore) connected');
+    db = admin.database();  // Realtime Database, NOT Firestore!
+    console.log('✅ Firebase Realtime Database connected');
   } catch (err) {
     console.error('❌ Firebase init failed:', err.message);
   }
 } else {
-  console.warn('⚠️  Firebase not configured — missing env vars');
+  console.warn('⚠️  Firebase not configured — missing FIREBASE_DATABASE_URL');
 }
 
 // ── Telegram notifier ─────────────────────────────────────────────────────────
@@ -103,7 +105,7 @@ function normalisePhone(phone) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ESPN SYNC MODULE - FIXED FOR LIVE SCORES
+// ESPN SYNC MODULE - FOR REALTIME DATABASE
 // ════════════════════════════════════════════════════════════════════════════
 
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
@@ -152,9 +154,6 @@ let syncStats = {
   leaguesFetched: 0
 };
 
-/**
- * Classify a tip result from ESPN match data
- */
 function classify(prediction, score, winner) {
   if (!prediction || !score) return null;
   const p   = prediction.trim().toLowerCase();
@@ -168,7 +167,7 @@ function classify(prediction, score, winner) {
   if (p === '1x')                                       return (winner === 'home' || winner === 'draw') ? 'right' : 'wrong';
   if (p === 'x2')                                       return (winner === 'away' || winner === 'draw') ? 'right' : 'wrong';
   if (p === '12')                                       return (winner === 'home' || winner === 'away') ? 'right' : 'wrong';
-  if (p === 'btts' || p === 'gg' || p.includes('gg (btts)') || p.includes('both teams to score'))
+  if (p === 'btts' || p === 'gg' || p.includes('both teams to score'))
                                                         return (hg > 0 && ag > 0) ? 'right' : 'wrong';
   if (p === 'ng' || p.includes('no btts'))              return (hg === 0 || ag === 0) ? 'right' : 'wrong';
   if (p.startsWith('over')) {
@@ -182,9 +181,6 @@ function classify(prediction, score, winner) {
   return null;
 }
 
-/**
- * Fetch ESPN scoreboard with retry logic
- */
 async function fetchESPNScoreboard(slug, retries = 2) {
   const url = `${ESPN_BASE}/${slug}/scoreboard`;
   
@@ -203,39 +199,27 @@ async function fetchESPNScoreboard(slug, retries = 2) {
   }
 }
 
-/**
- * Parse a raw ESPN event object - FIXED for live scores
- */
 function parseESPNEvent(ev) {
   const comp       = ev.competitions?.[0];
   const statusType = ev.status?.type;
   const home       = comp?.competitors?.find(c => c.homeAway === 'home');
   const away       = comp?.competitors?.find(c => c.homeAway === 'away');
 
-  // Get scores - IMPORTANT: check for both score and displayScore
   let homeScore = -1, awayScore = -1;
-  
   if (home?.score !== undefined) homeScore = parseInt(home.score, 10);
   if (away?.score !== undefined) awayScore = parseInt(away.score, 10);
+  if (isNaN(homeScore) && home?.displayScore !== undefined) homeScore = parseInt(home.displayScore, 10);
+  if (isNaN(awayScore) && away?.displayScore !== undefined) awayScore = parseInt(away.displayScore, 10);
   
-  // Also check for displayScore if regular score is missing
-  if (isNaN(homeScore) && home?.displayScore !== undefined) {
-    homeScore = parseInt(home.displayScore, 10);
-  }
-  if (isNaN(awayScore) && away?.displayScore !== undefined) {
-    awayScore = parseInt(away.displayScore, 10);
-  }
-  
-  const hasScore = !isNaN(homeScore) && !isNaN(awayScore) && homeScore >= 0 && awayScore >= 0;
+  const hasScore = homeScore >= 0 && awayScore >= 0;
 
   let winner = null;
   if (hasScore && statusType?.completed) {
-    if      (homeScore > awayScore) winner = 'home';
+    if (homeScore > awayScore) winner = 'home';
     else if (awayScore > homeScore) winner = 'away';
-    else                            winner = 'draw';
+    else winner = 'draw';
   }
 
-  // FIX: Better live detection
   const isLive = statusType?.state === 'in' || 
                  statusType?.state === 'live' || 
                  statusType?.description === 'In Progress' ||
@@ -245,20 +229,13 @@ function parseESPNEvent(ev) {
                      statusType?.state === 'post' || 
                      statusType?.state === 'final';
 
-  // FIX: Extract clock/minute correctly
-  let displayClock = null;
-  if (ev.status?.displayClock) {
-    displayClock = ev.status.displayClock;
-  } else if (ev.status?.clock) {
-    displayClock = ev.status.clock;
-  } else if (isLive && hasScore) {
+  let displayClock = ev.status?.displayClock || ev.status?.clock || null;
+  if (isLive && !displayClock && hasScore) {
     const period = ev.status?.period || 1;
     if (period === 1) displayClock = '45+';
     else if (period === 2) displayClock = '90';
-    else if (period > 2) displayClock = `${period === 3 ? '105' : '120'}'`;
+    else displayClock = `${period === 3 ? '105' : '120'}'`;
   }
-
-  console.log(`[ESPN] Match ${ev.id}: ${home?.team?.displayName || '?'} vs ${away?.team?.displayName || '?'} - Score: ${homeScore}-${awayScore}, Live: ${isLive}, Finished: ${isFinished}, Clock: ${displayClock}`);
 
   return {
     espnId:     String(ev.id),
@@ -271,42 +248,37 @@ function parseESPNEvent(ev) {
     winner,
     homeName:   home?.team?.displayName || home?.team?.name || '',
     awayName:   away?.team?.displayName || away?.team?.name || '',
-    shortName:  ev.shortName || `${home?.team?.abbreviation || '?'} vs ${away?.team?.abbreviation || '?'}`,
     startTime:  ev.date || null,
   };
 }
 
-/**
- * Main sync function - FIXED to properly update live scores
- */
 async function espnSyncDay() {
   const startTime = Date.now();
   
   if (!db) {
-    console.error('[ESPN] Firestore not available');
+    console.error('[ESPN] Firebase not available');
     return;
   }
 
   const todayKey = new Date().toISOString().split('T')[0];
-  const tipsRef  = db.collection('tips').doc(todayKey);
+  const tipsRef = db.ref(`tips/${todayKey}`);
 
-  let snap;
+  let snapshot;
   try { 
-    snap = await tipsRef.get(); 
+    snapshot = await tipsRef.once('value');
   } catch (e) { 
-    console.error('[ESPN] Firestore read error:', e.message);
+    console.error('[ESPN] Firebase read error:', e.message);
     syncStats.errors++;
     return; 
   }
   
-  if (!snap.exists) {
+  const data = snapshot.val();
+  if (!data) {
     console.log(`[ESPN] No tips for ${todayKey}`);
     return;
   }
 
-  const data = snap.data() || {};
-
-  // Collect ESPN IDs and league slugs needed
+  // Collect ESPN IDs
   const espnIdMap = new Map();
   const leagueSet = new Set();
 
@@ -318,8 +290,7 @@ async function espnSyncDay() {
           leagueKey,
           tipId,
           prediction: tip.prediction,
-          matchup: tip.matchup,
-          currentScore: tip.liveScore || null
+          matchup: tip.matchup
         });
         leagueSet.add(leagueKey); 
       }
@@ -333,7 +304,7 @@ async function espnSyncDay() {
 
   console.log(`[ESPN] Syncing ${espnIdMap.size} matches across ${leagueSet.size} leagues`);
 
-  // Fetch ESPN events for each relevant league
+  // Fetch ESPN events
   const eventMap = {};
   let leaguesFetched = 0;
   let liveMatchesFound = 0;
@@ -350,7 +321,7 @@ async function espnSyncDay() {
         await new Promise(r => setTimeout(r, 1000));
       }
       
-      const json   = await fetchESPNScoreboard(slug);
+      const json = await fetchESPNScoreboard(slug);
       const events = json?.events || [];
       
       for (const ev of events) {
@@ -371,52 +342,37 @@ async function espnSyncDay() {
     }
   }
 
-  // Build Firestore updates
+  // Build updates for Realtime Database
   const updates = {};
   let changed = 0;
 
   for (const [espnId, tipInfo] of espnIdMap) {
     const ev = eventMap[espnId];
-    if (!ev) {
-      console.log(`[ESPN] No ESPN data for ID: ${espnId}`);
-      continue;
-    }
+    if (!ev) continue;
 
-    const pfx = `${tipInfo.leagueKey}.tips.${tipInfo.tipId}`;
+    const path = `${tipInfo.leagueKey}/tips/${tipInfo.tipId}`;
 
-    // CRITICAL: Always update score if available (even during live matches)
     if (ev.scoreStr) {
-      updates[`${pfx}.liveScore`] = ev.scoreStr;
-      updates[`${pfx}.outcome`]   = ev.scoreStr;
-      console.log(`[ESPN] Updating score for ${tipInfo.matchup}: ${ev.scoreStr} (Live: ${ev.isLive})`);
+      updates[`${path}/liveScore`] = ev.scoreStr;
+      updates[`${path}/outcome`]   = ev.scoreStr;
+      console.log(`[ESPN] Updating ${tipInfo.matchup}: ${ev.scoreStr}`);
     }
     
-    // Update status flags
-    updates[`${pfx}.isLive`]     = ev.isLive;
-    updates[`${pfx}.isFinished`] = ev.isFinished;
-    updates[`${pfx}.lastUpdated`] = admin.firestore.FieldValue.serverTimestamp();
+    updates[`${path}/isLive`]     = ev.isLive;
+    updates[`${path}/isFinished`] = ev.isFinished;
+    updates[`${path}/lastUpdated`] = Date.now();
     
-    // Update clock for live matches
-    if (ev.clock) {
-      updates[`${pfx}.clock`] = ev.clock;
-    } else if (ev.isLive && ev.scoreStr) {
-      updates[`${pfx}.clock`] = 'LIVE';
-    }
-    
-    if (ev.period) updates[`${pfx}.period`] = ev.period;
+    if (ev.clock)  updates[`${path}/clock`]  = ev.clock;
+    if (ev.period) updates[`${path}/period`] = ev.period;
 
-    // Auto-classify result only when finished
     if (ev.isFinished && ev.winner && tipInfo.prediction) {
-      const existingResult = data[tipInfo.leagueKey]?.tips?.[tipInfo.tipId]?.result;
-      if (existingResult !== 'right' && existingResult !== 'wrong') {
-        const verdict = classify(tipInfo.prediction, ev.score, ev.winner);
-        if (verdict) {
-          updates[`${pfx}.result`] = verdict;
-          console.log(`[ESPN] ✅ Auto-result: ${tipInfo.matchup} → ${verdict} (${ev.scoreStr})`);
-          
-          if (verdict === 'right') {
-            await sendTelegram(`🎯 <b>WINNER!</b>\n${tipInfo.matchup}\nPrediction: ${tipInfo.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
-          }
+      const verdict = classify(tipInfo.prediction, ev.score, ev.winner);
+      if (verdict) {
+        updates[`${path}/result`] = verdict;
+        console.log(`[ESPN] ✅ Auto-result: ${tipInfo.matchup} → ${verdict} (${ev.scoreStr})`);
+        
+        if (verdict === 'right') {
+          await sendTelegram(`🎯 <b>WINNER!</b>\n${tipInfo.matchup}\nPrediction: ${tipInfo.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
         }
       }
     }
@@ -441,7 +397,7 @@ async function espnSyncDay() {
         liveMatches: liveMatchesFound
       };
     } catch (err) {
-      console.error('[ESPN] Firestore update error:', err.message);
+      console.error('[ESPN] Update error:', err.message);
       syncStats.errors++;
     }
   } else {
@@ -526,7 +482,6 @@ app.post('/api/espn/manual-sync', async (req, res) => {
   }
 });
 
-// Debug endpoint to check a specific match
 app.get('/api/espn/debug/:espnId', async (req, res) => {
   const { espnId } = req.params;
   if (!espnId) return res.status(400).json({ error: 'ESPN ID required' });
@@ -552,7 +507,7 @@ app.get('/api/espn/debug/:espnId', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXISTING ROUTES (payment, etc.)
+// PAYMENT ROUTES
 // ════════════════════════════════════════════════════════════════════════════
 
 app.get('/', (req, res) => {
@@ -602,7 +557,6 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-// ── STK Push ──────────────────────────────────────────────────────────────────
 app.post('/pay', async (req, res) => {
   const { phone, userId } = req.body;
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
@@ -633,15 +587,16 @@ app.post('/pay', async (req, res) => {
                   response.data?.transaction_reference       ||
                   `BETT-${Date.now()}`;
 
+    // Store in Realtime Database
     if (db) {
-      await db.collection('proPayments').doc(txRef).set({
+      await db.ref(`proPayments/${txRef}`).set({
         phone:     mobile,
         amount:    PRO_PRICE,
         userId:    userId || null,
         txRef,
         status:    'pending',
         createdAt: new Date().toISOString(),
-      }).catch(err => console.error('[STK] Firestore write failed:', err.message));
+      }).catch(err => console.error('[STK] Firebase write failed:', err.message));
     }
 
     console.log('[STK] ✅ txRef:', txRef);
@@ -666,9 +621,9 @@ app.get('/pay/status/:txRef', async (req, res) => {
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
 
   try {
-    const snap = await db.collection('proPayments').doc(txRef).get();
-    if (!snap.exists) return res.json({ success: true, status: 'pending' });
-    const data   = snap.data();
+    const snap = await db.ref(`proPayments/${txRef}`).once('value');
+    if (!snap.exists()) return res.json({ success: true, status: 'pending' });
+    const data   = snap.val();
     const status = (data.status === 'completed' || data.status === 'confirmed') ? 'completed' : (data.status || 'pending');
     return res.json({ success: true, status, unlocked: status === 'completed' });
   } catch (err) {
@@ -704,15 +659,15 @@ app.post('/api/webhook', async (req, res) => {
     const isFailed    = eventType === 'payment.failed'    || ['failed','cancelled','timeout'].includes(rawStatus);
 
     if (isCompleted) {
-      await db.collection('proPayments').doc(txRef).set({
+      await db.ref(`proPayments/${txRef}`).update({
         status: 'completed', mpesaCode, completedAt: new Date().toISOString()
-      }, { merge: true });
+      });
 
-      const paySnap  = await db.collection('proPayments').doc(txRef).get();
-      const payData  = paySnap.data();
+      const paySnap = await db.ref(`proPayments/${txRef}`).once('value');
+      const payData = paySnap.val();
       const safePhone = (payData.phone || mobile || '').replace(/\D/g, '');
       if (safePhone) {
-        await db.collection('proSubscribers').doc(safePhone).set({
+        await db.ref(`proSubscribers/${safePhone}`).set({
           phone: payData.phone || mobile, txRef, mpesaCode,
           unlockedAt: new Date().toISOString(), amount: payData.amount || PRO_PRICE,
         });
@@ -721,12 +676,12 @@ app.post('/api/webhook', async (req, res) => {
       sendTelegram(`💚 <b>PAYMENT CONFIRMED</b>\n📞 ${payData.phone || mobile}\n💰 Ksh ${payData.amount || PRO_PRICE}\n🧾 ${mpesaCode}\n🆔 ${txRef}`);
 
     } else if (isFailed) {
-      await db.collection('proPayments').doc(txRef).set({ status: 'failed', failedAt: new Date().toISOString() }, { merge: true });
+      await db.ref(`proPayments/${txRef}`).update({ status: 'failed', failedAt: new Date().toISOString() });
       console.log(`❌ Payment failed — ${txRef}`);
       sendTelegram(`❌ <b>PAYMENT FAILED</b>\n🆔 ${txRef}\n📞 ${mobile || '—'}`);
 
     } else {
-      await db.collection('proPayments').doc(txRef).set({ lastEvent: eventType, lastRawStatus: rawStatus }, { merge: true });
+      await db.ref(`proPayments/${txRef}`).update({ lastEvent: eventType, lastRawStatus: rawStatus });
       console.log(`ℹ️ Unhandled event: ${eventType}`);
     }
   } catch (err) {
@@ -739,8 +694,8 @@ app.get('/pro/check/:phone', async (req, res) => {
   if (!phone) return res.status(400).json({ success: false, error: 'Invalid phone' });
   if (!db)    return res.status(503).json({ success: false, error: 'Firebase not configured' });
   try {
-    const snap = await db.collection('proSubscribers').doc(phone).get();
-    res.json({ success: true, isPro: snap.exists, data: snap.exists ? snap.data() : null });
+    const snap = await db.ref(`proSubscribers/${phone}`).once('value');
+    res.json({ success: true, isPro: snap.exists(), data: snap.exists() ? snap.val() : null });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
