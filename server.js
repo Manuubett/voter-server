@@ -103,7 +103,7 @@ function normalisePhone(phone) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ESPN SYNC MODULE
+// ESPN SYNC MODULE - FIXED FOR LIVE SCORES
 // ════════════════════════════════════════════════════════════════════════════
 
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
@@ -212,9 +212,21 @@ function parseESPNEvent(ev) {
   const home       = comp?.competitors?.find(c => c.homeAway === 'home');
   const away       = comp?.competitors?.find(c => c.homeAway === 'away');
 
-  const homeScore  = parseInt(home?.score ?? '-1', 10);
-  const awayScore  = parseInt(away?.score ?? '-1', 10);
-  const hasScore   = homeScore >= 0 && awayScore >= 0;
+  // Get scores - IMPORTANT: check for both score and displayScore
+  let homeScore = -1, awayScore = -1;
+  
+  if (home?.score !== undefined) homeScore = parseInt(home.score, 10);
+  if (away?.score !== undefined) awayScore = parseInt(away.score, 10);
+  
+  // Also check for displayScore if regular score is missing
+  if (isNaN(homeScore) && home?.displayScore !== undefined) {
+    homeScore = parseInt(home.displayScore, 10);
+  }
+  if (isNaN(awayScore) && away?.displayScore !== undefined) {
+    awayScore = parseInt(away.displayScore, 10);
+  }
+  
+  const hasScore = !isNaN(homeScore) && !isNaN(awayScore) && homeScore >= 0 && awayScore >= 0;
 
   let winner = null;
   if (hasScore && statusType?.completed) {
@@ -223,7 +235,7 @@ function parseESPNEvent(ev) {
     else                            winner = 'draw';
   }
 
-  // FIX: Better live detection - check multiple status indicators
+  // FIX: Better live detection
   const isLive = statusType?.state === 'in' || 
                  statusType?.state === 'live' || 
                  statusType?.description === 'In Progress' ||
@@ -240,12 +252,13 @@ function parseESPNEvent(ev) {
   } else if (ev.status?.clock) {
     displayClock = ev.status.clock;
   } else if (isLive && hasScore) {
-    // If live but no clock, estimate based on period
     const period = ev.status?.period || 1;
     if (period === 1) displayClock = '45+';
     else if (period === 2) displayClock = '90';
     else if (period > 2) displayClock = `${period === 3 ? '105' : '120'}'`;
   }
+
+  console.log(`[ESPN] Match ${ev.id}: ${home?.team?.displayName || '?'} vs ${away?.team?.displayName || '?'} - Score: ${homeScore}-${awayScore}, Live: ${isLive}, Finished: ${isFinished}, Clock: ${displayClock}`);
 
   return {
     espnId:     String(ev.id),
@@ -264,7 +277,7 @@ function parseESPNEvent(ev) {
 }
 
 /**
- * Main sync function with improved live score handling
+ * Main sync function - FIXED to properly update live scores
  */
 async function espnSyncDay() {
   const startTime = Date.now();
@@ -294,7 +307,7 @@ async function espnSyncDay() {
   const data = snap.data() || {};
 
   // Collect ESPN IDs and league slugs needed
-  const espnIdMap = new Map(); // Store tip info for each ESPN ID
+  const espnIdMap = new Map();
   const leagueSet = new Set();
 
   for (const leagueKey of Object.keys(data)) {
@@ -305,7 +318,8 @@ async function espnSyncDay() {
           leagueKey,
           tipId,
           prediction: tip.prediction,
-          matchup: tip.matchup
+          matchup: tip.matchup,
+          currentScore: tip.liveScore || null
         });
         leagueSet.add(leagueKey); 
       }
@@ -343,7 +357,6 @@ async function espnSyncDay() {
         const parsed = parseESPNEvent(ev);
         eventMap[parsed.espnId] = parsed;
         
-        // Log live matches for debugging
         if (parsed.isLive && parsed.scoreStr) {
           liveMatchesFound++;
           console.log(`[ESPN] 🔴 LIVE: ${parsed.homeName} vs ${parsed.awayName} - ${parsed.scoreStr}${parsed.clock ? ` (${parsed.clock})` : ''}`);
@@ -351,27 +364,31 @@ async function espnSyncDay() {
       }
       
       leaguesFetched++;
-      console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events, ${events.filter(e => parseESPNEvent(e).isLive).length} live`);
+      console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events`);
     } catch (err) {
       console.error(`[ESPN] Failed to fetch ${leagueKey}:`, err.message);
       syncStats.errors++;
     }
   }
 
-  // Build Firestore field-level updates
+  // Build Firestore updates
   const updates = {};
   let changed = 0;
 
   for (const [espnId, tipInfo] of espnIdMap) {
     const ev = eventMap[espnId];
-    if (!ev) continue;
+    if (!ev) {
+      console.log(`[ESPN] No ESPN data for ID: ${espnId}`);
+      continue;
+    }
 
     const pfx = `${tipInfo.leagueKey}.tips.${tipInfo.tipId}`;
 
-    // ALWAYS update score if available (critical for live matches)
+    // CRITICAL: Always update score if available (even during live matches)
     if (ev.scoreStr) {
       updates[`${pfx}.liveScore`] = ev.scoreStr;
       updates[`${pfx}.outcome`]   = ev.scoreStr;
+      console.log(`[ESPN] Updating score for ${tipInfo.matchup}: ${ev.scoreStr} (Live: ${ev.isLive})`);
     }
     
     // Update status flags
@@ -383,7 +400,6 @@ async function espnSyncDay() {
     if (ev.clock) {
       updates[`${pfx}.clock`] = ev.clock;
     } else if (ev.isLive && ev.scoreStr) {
-      // If live but no clock, add a default
       updates[`${pfx}.clock`] = 'LIVE';
     }
     
@@ -431,30 +447,9 @@ async function espnSyncDay() {
   } else {
     console.log(`[ESPN] No updates needed for ${todayKey}`);
   }
-
-  // Write daily stats summary
-  try {
-    let total=0, wins=0, losses=0, live=0;
-    for (const lk of Object.keys(data)) {
-      for (const t of Object.values(data[lk]?.tips || {})) {
-        if (!t) continue; 
-        total++;
-        if (t.result === 'right') wins++;
-        if (t.result === 'wrong') losses++;
-        if (t.isLive)             live++;
-      }
-    }
-    const wr = (wins+losses) > 0 ? Math.round(wins/(wins+losses)*100) : null;
-    await db.collection('stats').doc(todayKey).set(
-      { total, wins, losses, live, winRate: wr, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
-      { merge: true }
-    );
-  } catch(e) { 
-    console.error('[ESPN] Stats update error:', e.message);
-  }
 }
 
-// Start ESPN cron with better error handling
+// Start ESPN cron
 let isSyncing = false;
 
 async function safeEspnSync() {
@@ -474,7 +469,7 @@ async function safeEspnSync() {
   }
 }
 
-const ESPN_INTERVAL = 60_000; // 60 seconds
+const ESPN_INTERVAL = 60_000;
 console.log('[ESPN] Cron starting — syncing every 60s');
 
 setTimeout(() => {
@@ -531,7 +526,7 @@ app.post('/api/espn/manual-sync', async (req, res) => {
   }
 });
 
-// Debug endpoint to check specific match
+// Debug endpoint to check a specific match
 app.get('/api/espn/debug/:espnId', async (req, res) => {
   const { espnId } = req.params;
   if (!espnId) return res.status(400).json({ error: 'ESPN ID required' });
@@ -557,7 +552,7 @@ app.get('/api/espn/debug/:espnId', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// EXISTING ROUTES (preserved)
+// EXISTING ROUTES (payment, etc.)
 // ════════════════════════════════════════════════════════════════════════════
 
 app.get('/', (req, res) => {
