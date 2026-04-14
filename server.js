@@ -198,13 +198,13 @@ async function fetchESPNScoreboard(slug, retries = 2) {
     } catch (err) {
       if (i === retries) throw err;
       console.log(`[ESPN] Retry ${i + 1}/${retries} for ${slug}`);
-      await new Promise(r => setTimeout(r, 2000 * (i + 1))); // Exponential backoff
+      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
     }
   }
 }
 
 /**
- * Parse a raw ESPN event object
+ * Parse a raw ESPN event object - FIXED for live scores
  */
 function parseESPNEvent(ev) {
   const comp       = ev.competitions?.[0];
@@ -223,24 +223,48 @@ function parseESPNEvent(ev) {
     else                            winner = 'draw';
   }
 
+  // FIX: Better live detection - check multiple status indicators
+  const isLive = statusType?.state === 'in' || 
+                 statusType?.state === 'live' || 
+                 statusType?.description === 'In Progress' ||
+                 (statusType?.completed === false && hasScore);
+  
+  const isFinished = statusType?.completed === true || 
+                     statusType?.state === 'post' || 
+                     statusType?.state === 'final';
+
+  // FIX: Extract clock/minute correctly
+  let displayClock = null;
+  if (ev.status?.displayClock) {
+    displayClock = ev.status.displayClock;
+  } else if (ev.status?.clock) {
+    displayClock = ev.status.clock;
+  } else if (isLive && hasScore) {
+    // If live but no clock, estimate based on period
+    const period = ev.status?.period || 1;
+    if (period === 1) displayClock = '45+';
+    else if (period === 2) displayClock = '90';
+    else if (period > 2) displayClock = `${period === 3 ? '105' : '120'}'`;
+  }
+
   return {
     espnId:     String(ev.id),
-    isLive:     statusType?.state === 'in',
-    isFinished: !!statusType?.completed,
-    clock:      ev.status?.displayClock || null,
+    isLive:     isLive,
+    isFinished: isFinished,
+    clock:      displayClock,
     period:     ev.status?.period || null,
     score:      hasScore ? { home: homeScore, away: awayScore } : null,
     scoreStr:   hasScore ? `${homeScore} - ${awayScore}` : null,
     winner,
-    homeName:   home?.team?.displayName || '',
-    awayName:   away?.team?.displayName || '',
+    homeName:   home?.team?.displayName || home?.team?.name || '',
+    awayName:   away?.team?.displayName || away?.team?.name || '',
     shortName:  ev.shortName || `${home?.team?.abbreviation || '?'} vs ${away?.team?.abbreviation || '?'}`,
     startTime:  ev.date || null,
   };
 }
 
 /**
- * Main sync function with improved error handling
+ * Main sync function with improved live score handling
  */
 async function espnSyncDay() {
   const startTime = Date.now();
@@ -270,29 +294,35 @@ async function espnSyncDay() {
   const data = snap.data() || {};
 
   // Collect ESPN IDs and league slugs needed
-  const espnIdSet = new Set();
+  const espnIdMap = new Map(); // Store tip info for each ESPN ID
   const leagueSet = new Set();
 
   for (const leagueKey of Object.keys(data)) {
     const tips = data[leagueKey]?.tips || {};
-    for (const tip of Object.values(tips)) {
+    for (const [tipId, tip] of Object.entries(tips)) {
       if (tip?.espnId) { 
-        espnIdSet.add(String(tip.espnId)); 
+        espnIdMap.set(String(tip.espnId), {
+          leagueKey,
+          tipId,
+          prediction: tip.prediction,
+          matchup: tip.matchup
+        });
         leagueSet.add(leagueKey); 
       }
     }
   }
 
-  if (!espnIdSet.size) {
+  if (!espnIdMap.size) {
     console.log('[ESPN] No ESPN IDs found in tips');
     return;
   }
 
-  console.log(`[ESPN] Syncing ${espnIdSet.size} matches across ${leagueSet.size} leagues`);
+  console.log(`[ESPN] Syncing ${espnIdMap.size} matches across ${leagueSet.size} leagues`);
 
-  // Fetch ESPN events for each relevant league with delay to avoid rate limiting
+  // Fetch ESPN events for each relevant league
   const eventMap = {};
   let leaguesFetched = 0;
+  let liveMatchesFound = 0;
   
   for (const leagueKey of leagueSet) {
     const slug = LEAGUE_SLUGS[leagueKey];
@@ -302,7 +332,6 @@ async function espnSyncDay() {
     }
     
     try {
-      // Add delay between league requests to avoid rate limiting
       if (leaguesFetched > 0) {
         await new Promise(r => setTimeout(r, 1000));
       }
@@ -313,10 +342,16 @@ async function espnSyncDay() {
       for (const ev of events) {
         const parsed = parseESPNEvent(ev);
         eventMap[parsed.espnId] = parsed;
+        
+        // Log live matches for debugging
+        if (parsed.isLive && parsed.scoreStr) {
+          liveMatchesFound++;
+          console.log(`[ESPN] 🔴 LIVE: ${parsed.homeName} vs ${parsed.awayName} - ${parsed.scoreStr}${parsed.clock ? ` (${parsed.clock})` : ''}`);
+        }
       }
       
       leaguesFetched++;
-      console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events`);
+      console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events, ${events.filter(e => parseESPNEvent(e).isLive).length} live`);
     } catch (err) {
       console.error(`[ESPN] Failed to fetch ${leagueKey}:`, err.message);
       syncStats.errors++;
@@ -325,45 +360,51 @@ async function espnSyncDay() {
 
   // Build Firestore field-level updates
   const updates = {};
-  let   changed = 0;
+  let changed = 0;
 
-  for (const leagueKey of Object.keys(data)) {
-    const tips = data[leagueKey]?.tips || {};
-    for (const [tipId, tip] of Object.entries(tips)) {
-      if (!tip?.espnId) continue;
-      
-      const ev = eventMap[String(tip.espnId)];
-      if (!ev) continue;
+  for (const [espnId, tipInfo] of espnIdMap) {
+    const ev = eventMap[espnId];
+    if (!ev) continue;
 
-      const pfx = `${leagueKey}.tips.${tipId}`;
+    const pfx = `${tipInfo.leagueKey}.tips.${tipInfo.tipId}`;
 
-      if (ev.scoreStr) {
-        updates[`${pfx}.liveScore`] = ev.scoreStr;
-        updates[`${pfx}.outcome`]   = ev.scoreStr;
-      }
-      
-      updates[`${pfx}.isLive`]     = ev.isLive;
-      updates[`${pfx}.isFinished`] = ev.isFinished;
-      updates[`${pfx}.lastUpdated`] = admin.firestore.FieldValue.serverTimestamp();
-      
-      if (ev.clock)  updates[`${pfx}.clock`]  = ev.clock;
-      if (ev.period) updates[`${pfx}.period`] = ev.period;
+    // ALWAYS update score if available (critical for live matches)
+    if (ev.scoreStr) {
+      updates[`${pfx}.liveScore`] = ev.scoreStr;
+      updates[`${pfx}.outcome`]   = ev.scoreStr;
+    }
+    
+    // Update status flags
+    updates[`${pfx}.isLive`]     = ev.isLive;
+    updates[`${pfx}.isFinished`] = ev.isFinished;
+    updates[`${pfx}.lastUpdated`] = admin.firestore.FieldValue.serverTimestamp();
+    
+    // Update clock for live matches
+    if (ev.clock) {
+      updates[`${pfx}.clock`] = ev.clock;
+    } else if (ev.isLive && ev.scoreStr) {
+      // If live but no clock, add a default
+      updates[`${pfx}.clock`] = 'LIVE';
+    }
+    
+    if (ev.period) updates[`${pfx}.period`] = ev.period;
 
-      // Auto-classify result only when finished and not already set
-      if (ev.isFinished && ev.winner && tip.result !== 'right' && tip.result !== 'wrong') {
-        const verdict = classify(tip.prediction, ev.score, ev.winner);
+    // Auto-classify result only when finished
+    if (ev.isFinished && ev.winner && tipInfo.prediction) {
+      const existingResult = data[tipInfo.leagueKey]?.tips?.[tipInfo.tipId]?.result;
+      if (existingResult !== 'right' && existingResult !== 'wrong') {
+        const verdict = classify(tipInfo.prediction, ev.score, ev.winner);
         if (verdict) {
           updates[`${pfx}.result`] = verdict;
-          console.log(`[ESPN] Auto-result: ${tip.matchup || tipId} → ${verdict} (${ev.scoreStr})`);
+          console.log(`[ESPN] ✅ Auto-result: ${tipInfo.matchup} → ${verdict} (${ev.scoreStr})`);
           
-          // Send Telegram notification for important results
           if (verdict === 'right') {
-            await sendTelegram(`🎯 <b>WINNER!</b>\n${tip.matchup || 'Match'}\nPrediction: ${tip.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
+            await sendTelegram(`🎯 <b>WINNER!</b>\n${tipInfo.matchup}\nPrediction: ${tipInfo.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
           }
         }
       }
-      changed++;
     }
+    changed++;
   }
 
   if (changed > 0 && Object.keys(updates).length > 0) {
@@ -371,14 +412,17 @@ async function espnSyncDay() {
       await tipsRef.update(updates);
       const duration = Date.now() - startTime;
       console.log(`[ESPN] ✅ Updated ${Object.keys(updates).length} fields for ${changed} tips in ${duration}ms`);
+      if (liveMatchesFound > 0) {
+        console.log(`[ESPN] 🟢 ${liveMatchesFound} live matches with scores updated`);
+      }
       
-      // Update sync stats
       syncStats = {
         lastRun: new Date().toISOString(),
         tipsUpdated: changed,
         errors: syncStats.errors,
         leaguesFetched,
-        duration
+        duration,
+        liveMatches: liveMatchesFound
       };
     } catch (err) {
       console.error('[ESPN] Firestore update error:', err.message);
@@ -411,7 +455,7 @@ async function espnSyncDay() {
 }
 
 // Start ESPN cron with better error handling
-let isSyncing = false; // Prevent overlapping syncs
+let isSyncing = false;
 
 async function safeEspnSync() {
   if (isSyncing) {
@@ -433,7 +477,6 @@ async function safeEspnSync() {
 const ESPN_INTERVAL = 60_000; // 60 seconds
 console.log('[ESPN] Cron starting — syncing every 60s');
 
-// Initial sync after 5 seconds to let Firebase init
 setTimeout(() => {
   safeEspnSync().catch(e => console.error('[ESPN] Initial sync error:', e.message));
   setInterval(() => safeEspnSync().catch(e => console.error('[ESPN] Cron error:', e.message)), ESPN_INTERVAL);
@@ -443,10 +486,6 @@ setTimeout(() => {
 // ESPN PROXY ENDPOINTS
 // ════════════════════════════════════════════════════════════════════════════
 
-/**
- * GET /api/espn/search?slug=eng.1&q=Arsenal
- * Returns today's events for a league slug
- */
 app.get('/api/espn/search', async (req, res) => {
   const { slug, q } = req.query;
   if (!slug) return res.status(400).json({ success: false, error: 'slug required' });
@@ -470,18 +509,10 @@ app.get('/api/espn/search', async (req, res) => {
   }
 });
 
-/**
- * GET /api/espn/leagues
- * Returns league slugs for admin dropdown
- */
 app.get('/api/espn/leagues', (req, res) => {
   res.json({ success: true, leagues: LEAGUE_SLUGS });
 });
 
-/**
- * GET /api/espn/sync-status
- * Returns sync statistics for monitoring
- */
 app.get('/api/espn/sync-status', (req, res) => {
   res.json({ 
     success: true, 
@@ -491,10 +522,6 @@ app.get('/api/espn/sync-status', (req, res) => {
   });
 });
 
-/**
- * POST /api/espn/manual-sync
- * Manually trigger a sync (admin only - add auth in production)
- */
 app.post('/api/espn/manual-sync', async (req, res) => {
   try {
     await safeEspnSync();
@@ -504,11 +531,35 @@ app.post('/api/espn/manual-sync', async (req, res) => {
   }
 });
 
+// Debug endpoint to check specific match
+app.get('/api/espn/debug/:espnId', async (req, res) => {
+  const { espnId } = req.params;
+  if (!espnId) return res.status(400).json({ error: 'ESPN ID required' });
+  
+  for (const [leagueName, slug] of Object.entries(LEAGUE_SLUGS)) {
+    try {
+      const json = await fetchESPNScoreboard(slug);
+      const events = json?.events || [];
+      const match = events.find(ev => String(ev.id) === espnId);
+      if (match) {
+        const parsed = parseESPNEvent(match);
+        return res.json({ 
+          success: true, 
+          match: parsed, 
+          league: leagueName, 
+          slug,
+          raw: match
+        });
+      }
+    } catch(e) {}
+  }
+  res.json({ success: false, error: 'Match not found in any league' });
+});
+
 // ════════════════════════════════════════════════════════════════════════════
 // EXISTING ROUTES (preserved)
 // ════════════════════════════════════════════════════════════════════════════
 
-// ── Health / debug endpoints ──────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({
     status:   'ok',
@@ -609,13 +660,11 @@ app.post('/pay', async (req, res) => {
   }
 });
 
-// Legacy compat
 app.post('/api/stk-push', async (req, res) => {
   req.url = '/pay';
   app._router.handle(req, res);
 });
 
-// ── Payment status ────────────────────────────────────────────────────────────
 app.get('/pay/status/:txRef', async (req, res) => {
   const { txRef } = req.params;
   if (!txRef || txRef.length < 5) return res.status(400).json({ success: false, error: 'Invalid txRef' });
@@ -638,7 +687,6 @@ app.get('/api/pay/status/:txRef', async (req, res) => {
   app._router.handle(req, res);
 });
 
-// ── Webhook ───────────────────────────────────────────────────────────────────
 app.post('/api/webhook', async (req, res) => {
   res.json({ received: true });
 
@@ -691,7 +739,6 @@ app.post('/api/webhook', async (req, res) => {
   }
 });
 
-// ── Pro check by phone ────────────────────────────────────────────────────────
 app.get('/pro/check/:phone', async (req, res) => {
   const phone = req.params.phone.replace(/\D/g, '');
   if (!phone) return res.status(400).json({ success: false, error: 'Invalid phone' });
@@ -704,7 +751,6 @@ app.get('/pro/check/:phone', async (req, res) => {
   }
 });
 
-// ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
   console.log(`💰 Pro price: KES ${PRO_PRICE}`);
