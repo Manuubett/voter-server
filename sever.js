@@ -450,7 +450,7 @@ app.get('/api/espn/search', async (req, res) => {
       const query = q.toLowerCase();
       events = events.filter(e =>
         e.homeName.toLowerCase().includes(query) ||
-        e.awayName.toLowerCase().includes(query) ||
+        e.awayName.toLowerCase().includes(query)
       );
     }
     
