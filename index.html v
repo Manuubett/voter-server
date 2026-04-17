@@ -1,59 +1,1767 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voter Verification</title>
-  <style>
-    body { font-family: Arial; padding: 20px; background: #f5f5f5; }
-    h1 { text-align: center; }
-    form { max-width: 400px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
-    input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc; }
-    button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:hover { background: #218838; }
-    #result { text-align: center; margin-top: 15px; font-weight: bold; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+
+<!-- ═══════════════════════════════════════════════
+     PRIMARY SEO META
+═══════════════════════════════════════════════ -->
+<title>Bett Officials – Today's Football Predictions | Free Tips & Expert Picks</title>
+<meta name="description" content="Get today's best football predictions, free tips & expert analysis. Updated daily for Kenyan bettors. M-Pesa powered Pro tips with live scores & exact score predictions.">
+<meta name="keywords" content="football predictions Kenya, betting tips today, free football tips, sportpesa predictions, betika tips, expert picks Kenya, today's football tips, soccer predictions Nairobi">
+<meta name="author" content="Bett Officials">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<meta name="theme-color" content="#050810">
+<meta name="msapplication-TileColor" content="#050810">
+<link rel="canonical" href="https://pro-prediction.bett.website/">
+
+<!-- ═══════════════════════════════════════════════
+     OPEN GRAPH (Facebook / WhatsApp / LinkedIn)
+═══════════════════════════════════════════════ -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://pro-prediction.bett.website">
+<meta property="og:site_name" content="Bett Officials">
+<meta property="og:title" content="Bett Officials – Today's Football Predictions & Expert Tips">
+<meta property="og:description" content="Premium football predictions updated daily. Free tips + Pro expert picks for Kenyan bettors. Live scores, exact score predictions & high win-rate selections.">
+<meta property="og:image" content="og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Bett Officials – Premium Football Predictions">
+<meta property="og:locale" content="en_KE">
+
+<!-- ═══════════════════════════════════════════════
+     TWITTER / X CARD
+═══════════════════════════════════════════════ -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bett Officials – Today's Football Predictions & Expert Tips">
+<meta name="twitter:description" content="Premium football predictions updated daily. Free tips + Pro expert picks for Kenyan bettors.">
+<meta name="twitter:image" content="og-image.png">
+<meta name="twitter:image:alt" content="Bett Officials – Premium Football Predictions">
+
+<!-- ═══════════════════════════════════════════════
+     FAVICON SUITE
+     SVG primary (crisp at all sizes) + PNG fallbacks
+═══════════════════════════════════════════════ -->
+<!-- SVG favicon – scales perfectly to any size, works in all modern browsers -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5ff'/%3E%3Cstop offset='100%25' stop-color='%23ff2d78'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='22' font-family='Arial Black,sans-serif' font-weight='900' font-size='18' fill='%23000' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
+<!-- PNG fallback for older browsers -->
+<link rel="alternate icon" type="image/png" href="og-image.png">
+<!-- Apple Touch Icon (iOS / Android home screen shortcut) -->
+<link rel="apple-touch-icon" sizes="180x180" href="og-image.png">
+<!-- Web App Manifest (PWA / "Add to Home Screen") -->
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Bett%20Officials%22%2C%22short_name%22%3A%22BettOfficials%22%2C%22description%22%3A%22Premium%20football%20predictions%20for%20Kenyan%20bettors%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23050810%22%2C%22theme_color%22%3A%22%2300e5ff%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fi.ibb.co%2FRTspjkdT%2F07732cbf7233.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+
+<!-- ═══════════════════════════════════════════════
+     STRUCTURED DATA – JSON-LD
+     Helps Google show rich results in search
+═══════════════════════════════════════════════ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Bett Officials",
+  "url": "https://pro-prediction.bett.website",
+  "description": "Premium football predictions, free tips and expert analysis. Updated daily for Kenyan bettors.",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Bett Officials",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "og-image.png"
+    },
+    "sameAs": [
+      "https://www.facebook.com/profile.php?id=61576731217411"
+    ]
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https:///pro-prediction.bett.website./?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SportsOrganization",
+  "name": "Bett Officials",
+  "url": "https:///pro-prediction.bett.website",
+  "description": "Premium football predictions and expert betting tips for Kenyan bettors. Live scores, free tips and Pro expert picks.",
+  "sport": "Football",
+  "areaServed": {
+    "@type": "Country",
+    "name": "Kenya"
+  },
+  "sameAs": [
+    "https://www.facebook.com/profile.php?id=61576731217411"
+  ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050810;
+  --surface:#0a0f1e;
+  --surface2:#111828;
+  --surface3:#1a2235;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.1);
+  --border3:rgba(255,255,255,0.16);
+  --accent:#00e5ff;
+  --accent-dim:rgba(0,229,255,0.12);
+  --accent-glow:rgba(0,229,255,0.25);
+  --pink:#ff2d78;
+  --pink-dim:rgba(255,45,120,0.12);
+  --gold:#ffc947;
+  --gold-dim:rgba(255,201,71,0.12);
+  --green:#00d68f;
+  --green-dim:rgba(0,214,143,0.12);
+  --red:#ff4d6d;
+  --red-dim:rgba(255,77,109,0.12);
+  --fb:#1877f2;
+  --fb-dim:rgba(24,119,242,0.12);
+  --text:#e8edf5;
+  --muted:#5a7090;
+  --muted2:#3d5070;
+  --r8:8px;
+  --r12:12px;
+  --r16:16px;
+  --r20:20px;
+  --fh:'Bricolage Grotesque',sans-serif;
+  --fm:'Space Mono',monospace;
+}   
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--fh);
+  min-height:100vh;
+  overflow-x:hidden;
+  line-height:1.5;
+}
+body::before{
+  content:'';
+  position:fixed;
+  top:-40%;left:-20%;
+  width:70vw;height:70vw;
+  background:radial-gradient(ellipse,rgba(0,229,255,0.04) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';
+  position:fixed;
+  bottom:-30%;right:-10%;
+  width:60vw;height:60vw;
+  background:radial-gradient(ellipse,rgba(255,45,120,0.04) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
+
+/* HEADER */
+.header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(5,8,16,0.88);
+  backdrop-filter:blur(24px) saturate(180%);
+  -webkit-backdrop-filter:blur(24px) saturate(180%);
+  border-bottom:1px solid var(--border);
+}
+.header-inner{
+  max-width:1120px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.25rem;height:60px;gap:1rem;
+}
+.logo{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+.logo-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--pink));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:700;color:#000;
+  box-shadow:0 0 20px rgba(0,229,255,0.3);
+  flex-shrink:0;
+}
+.logo-name{
+  font-family:var(--fh);font-weight:700;font-size:1.15rem;
+  color:var(--text);letter-spacing:-.3px;
+}
+.logo-name span{color:var(--accent)}
+.logo-tag{
+  font-size:.6rem;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:#000;
+  background:var(--accent);padding:2px 7px;border-radius:20px;
+  line-height:1.5;
+}
+.hdr-right{display:flex;align-items:center;gap:.5rem}
+.live-badge{
+  display:flex;align-items:center;gap:.35rem;
+  padding:4px 10px;border-radius:20px;
+  background:var(--green-dim);border:1px solid rgba(0,214,143,.2);
+  font-size:.7rem;font-weight:700;color:var(--green);letter-spacing:.5px;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.4s ease infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+.pro-timer{
+  display:none;align-items:center;gap:.4rem;
+  padding:4px 10px;border-radius:20px;
+  background:var(--gold-dim);border:1px solid rgba(255,201,71,.25);
+  font-size:.7rem;font-weight:700;color:var(--gold);
+  font-family:var(--fm);
+}
+.pro-timer.visible{display:flex}
+
+/* Facebook follow button */
+.fb-follow-btn{
+  display:flex;align-items:center;gap:.4rem;
+  padding:5px 12px;border-radius:20px;
+  background:var(--fb-dim);border:1px solid rgba(24,119,242,.25);
+  color:var(--fb);font-size:.72rem;font-weight:700;
+  text-decoration:none;transition:all .2s;white-space:nowrap;
+  letter-spacing:.2px;
+}
+.fb-follow-btn:hover{
+  background:rgba(24,119,242,.2);
+  border-color:rgba(24,119,242,.5);
+  transform:translateY(-1px);
+}
+.fb-follow-btn i{font-size:.8rem}
+
+.hdr-avatar{
+  width:32px;height:32px;border-radius:50%;
+  border:2px solid var(--accent);
+  object-fit:cover;flex-shrink:0;
+}
+.theme-toggle{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--muted);cursor:pointer;font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+
+/* NAV TABS */
+.nav-wrap{
+  max-width:1120px;margin:1.2rem auto 0;
+  padding:0 1.25rem;
+}
+.nav-tabs{
+  display:inline-flex;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:var(--r12);
+  padding:4px;gap:3px;
+}
+.nav-tab{
+  font-family:var(--fh);font-size:.82rem;font-weight:600;
+  padding:.45rem 1.2rem;border:none;border-radius:9px;
+  cursor:pointer;background:none;color:var(--muted);
+  transition:all .2s ease;white-space:nowrap;
+  display:flex;align-items:center;gap:.4rem;
+}
+.nav-tab:hover:not(.active){color:var(--text)}
+.nav-tab.active{
+  background:var(--accent);color:#000;
+  box-shadow:0 2px 12px rgba(0,229,255,.35);
+}
+
+/* MAIN */
+.main{max-width:1120px;margin:1.2rem auto 4rem;padding:0 1.25rem}
+.pane{display:none}
+.pane.active{display:block}
+
+/* Stats row */
+.stats-row{
+  display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;
+}
+.stat-chip{
+  display:flex;align-items:center;gap:.45rem;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r12);padding:.45rem .9rem;
+  font-size:.78rem;font-weight:500;color:var(--muted);
+}
+.stat-chip .sv{
+  font-family:var(--fm);font-size:.9rem;font-weight:700;
+  color:var(--text);
+}
+.stat-chip.sc-live .sv{color:var(--green)}
+.stat-chip.sc-win .sv{color:var(--green)}
+.stat-chip.sc-loss .sv{color:var(--red)}
+.stat-chip.sc-accent .sv{color:var(--accent)}
+/* Total odds chip — special gold styling */
+.stat-chip.sc-odds{
+  background:var(--gold-dim);
+  border-color:rgba(255,201,71,.25);
+}
+.stat-chip.sc-odds .sv{color:var(--gold)}
+
+.last-sync{
+  font-size:.72rem;color:var(--muted2);
+  display:flex;align-items:center;gap:.4rem;
+  margin-bottom:1rem;
+}
+
+/* Filter bar */
+.filter-row{
+  display:flex;align-items:center;gap:.4rem;
+  flex-wrap:wrap;margin-bottom:1rem;
+}
+.filter-lbl{
+  font-size:.68rem;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted2);margin-right:.2rem;
+}
+.filter-chip{
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--muted);padding:.3rem .8rem;border-radius:20px;
+  font-size:.74rem;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;font-family:var(--fh);
+}
+.filter-chip:hover{border-color:var(--accent);color:var(--accent)}
+.filter-chip.active{
+  background:var(--accent-dim);border-color:var(--accent);
+  color:var(--accent);
+}
+
+/* LEAGUE CARD */
+.league-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r20);
+  overflow:hidden;
+  margin-bottom:1rem;
+  transition:border-color .2s,box-shadow .2s;
+}
+.league-card:hover{
+  border-color:var(--border2);
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+.card-header{
+  padding:.85rem 1.25rem;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:.5rem;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(90deg,rgba(0,229,255,.03),transparent);
+}
+.card-league{
+  display:flex;align-items:center;gap:.5rem;
+  font-weight:700;font-size:.95rem;
+}
+.card-league-icon{
+  width:26px;height:26px;border-radius:8px;
+  background:var(--accent-dim);border:1px solid rgba(0,229,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;color:var(--accent);flex-shrink:0;
+}
+.card-meta{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.meta-count{
+  font-size:.67rem;font-weight:700;
+  background:var(--accent-dim);border:1px solid rgba(0,229,255,.15);
+  color:var(--accent);padding:2px 8px;border-radius:20px;
+}
+.meta-pro{
+  font-size:.67rem;font-weight:700;
+  background:linear-gradient(135deg,var(--gold),#ff8c00);
+  color:#000;padding:2px 8px;border-radius:20px;
+  display:flex;align-items:center;gap:3px;
+}
+.meta-live-count{
+  font-size:.67rem;font-weight:700;
+  background:var(--green-dim);border:1px solid rgba(0,214,143,.2);
+  color:var(--green);padding:2px 8px;border-radius:20px;
+  display:flex;align-items:center;gap:3px;
+  animation:blink 1.8s ease infinite;
+}
+.card-table-wrap{overflow-x:auto}
+.card-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.card-table th{
+  padding:.65rem 1.25rem;text-align:left;
+  font-size:.64rem;font-weight:700;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted2);
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.card-table td{
+  padding:.8rem 1.25rem;border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.card-table tr:last-child td{border-bottom:none}
+.card-table tbody tr:hover td{background:rgba(255,255,255,.012)}
+.match-name{font-weight:600;font-size:.86rem;line-height:1.3}
+.match-time-hint{font-size:.7rem;color:var(--muted);margin-top:2px}
+.pred-badge{
+  display:inline-block;
+  background:var(--pink-dim);border:1px solid rgba(255,45,120,.2);
+  color:var(--pink);padding:3px 10px;border-radius:20px;
+  font-size:.76rem;font-weight:600;white-space:nowrap;
+}
+.odds-badge{
+  display:inline-block;font-family:var(--fm);
+  background:var(--gold-dim);border:1px solid rgba(255,201,71,.2);
+  color:var(--gold);padding:3px 10px;border-radius:20px;
+  font-size:.8rem;font-weight:700;
+}
+.score-badge{
+  display:inline-flex;align-items:center;gap:.35rem;
+  font-family:var(--fm);font-size:.9rem;font-weight:700;
+  padding:4px 12px;border-radius:10px;
+}
+.score-badge.live{
+  background:var(--green-dim);border:1.5px solid rgba(0,214,143,.3);
+  color:var(--green);
+}
+.score-badge.ft{
+  background:rgba(255,255,255,.05);border:1px solid var(--border3);
+  color:var(--text);
+}
+.score-badge.pending{
+  color:var(--muted2);font-family:var(--fh);font-size:.78rem;font-weight:500;
+}
+.clock-tag{
+  font-size:.65rem;font-weight:700;color:var(--green);
+  font-family:var(--fm);
+}
+.status-live{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--green-dim);border:1px solid rgba(0,214,143,.2);
+  color:var(--green);padding:3px 8px;border-radius:20px;
+  font-size:.68rem;font-weight:700;animation:blink 1.8s infinite;
+}
+.status-ft{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+  color:var(--muted);padding:3px 8px;border-radius:20px;
+  font-size:.68rem;font-weight:700;
+}
+.status-sched{
+  display:inline-flex;align-items:center;gap:4px;
+  color:var(--muted);font-size:.78rem;white-space:nowrap;
+}
+.result-w{
+  width:26px;height:26px;border-radius:50%;
+  background:var(--green-dim);border:1.5px solid rgba(0,214,143,.3);
+  color:var(--green);display:inline-flex;align-items:center;justify-content:center;
+  font-size:.72rem;
+}
+.result-l{
+  width:26px;height:26px;border-radius:50%;
+  background:var(--red-dim);border:1.5px solid rgba(255,77,109,.3);
+  color:var(--red);display:inline-flex;align-items:center;justify-content:center;
+  font-size:.72rem;
+}
+.result-p{
+  display:inline-flex;align-items:center;gap:3px;
+  background:rgba(255,201,71,.06);border:1px solid rgba(255,201,71,.2);
+  color:var(--gold);padding:3px 9px;border-radius:20px;
+  font-size:.7rem;font-weight:600;
+}
+.outcome-badge{
+  display:inline-block;
+  font-family:var(--fm);font-size:.78rem;
+  background:rgba(255,255,255,.05);border:1px solid var(--border2);
+  color:var(--text);padding:3px 10px;border-radius:20px;
+}
+
+/* PRO GATE */
+.pro-gate{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r20);padding:3rem 2rem;
+  text-align:center;position:relative;overflow:hidden;
+}
+.pro-gate::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at top center,rgba(255,201,71,.06),transparent 60%);
+  pointer-events:none;
+}
+.pro-gate-crown{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,var(--gold),#ff8c00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;margin:0 auto 1.2rem;
+  box-shadow:0 8px 24px rgba(255,201,71,.3);
+}
+.pro-gate h3{font-size:1.4rem;font-weight:700;margin-bottom:.4rem;}
+.pro-count-line{
+  display:inline-flex;align-items:center;gap:.4rem;
+  font-weight:700;font-size:.9rem;color:var(--accent);
+  margin-bottom:.7rem;
+}
+.pro-gate p{
+  color:var(--muted);font-size:.85rem;margin-bottom:.5rem;
+  max-width:340px;margin-left:auto;margin-right:auto;
+}
+.pro-gate .expiry-note{
+  font-size:.75rem;color:var(--gold);
+  display:flex;align-items:center;justify-content:center;gap:.3rem;
+  margin-bottom:1.5rem;
+}
+.btn-unlock{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:linear-gradient(135deg,var(--gold),#ff8c00);
+  color:#000;font-family:var(--fh);font-weight:700;font-size:.9rem;
+  border:none;padding:.85rem 2rem;border-radius:50px;cursor:pointer;
+  transition:all .2s;box-shadow:0 6px 20px rgba(255,201,71,.3);
+}
+.btn-unlock:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(255,201,71,.4)}
+
+/* PRO STATS ROW */
+.pro-stats-row{
+  display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;
+}
+
+/* RESULTS PANE */
+.results-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:.8rem;margin-bottom:.8rem;
+}
+.results-heading{
+  font-size:1rem;font-weight:700;
+  display:flex;align-items:center;gap:.5rem;
+}
+.date-nav{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.date-nav-btn{
+  width:32px;height:32px;border-radius:9px;
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--text);cursor:pointer;font-size:.78rem;
+  display:flex;align-items:center;justify-content:center;transition:.15s;
+}
+.date-nav-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.date-nav-btn:disabled{opacity:.3;cursor:not-allowed}
+.date-display{
+  font-family:var(--fm);font-size:.8rem;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:10px;padding:.38rem .85rem;
+  white-space:nowrap;min-width:120px;text-align:center;
+  color:var(--text);
+}
+.date-picker-wrap{position:relative}
+.date-picker-wrap input[type="date"]{
+  position:absolute;opacity:0;inset:0;width:100%;cursor:pointer;border:none;background:none;
+}
+.date-picker-btn{
+  display:flex;align-items:center;gap:.35rem;
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--muted);padding:.38rem .85rem;border-radius:9px;
+  cursor:pointer;font-size:.76rem;font-family:var(--fh);
+  transition:.15s;white-space:nowrap;height:32px;
+}
+.date-picker-btn:hover{border-color:var(--accent);color:var(--accent)}
+.week-chips{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.9rem}
+.week-chip{
+  background:var(--surface);border:1px solid var(--border2);
+  color:var(--muted);padding:.28rem .75rem;border-radius:20px;
+  font-size:.73rem;font-weight:600;cursor:pointer;
+  transition:.15s;white-space:nowrap;font-family:var(--fh);
+}
+.week-chip:hover{border-color:var(--accent);color:var(--accent)}
+.week-chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.results-summary{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.rsm{
+  display:flex;align-items:center;gap:.35rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:.38rem .85rem;
+  font-size:.74rem;font-weight:600;color:var(--muted);
+}
+.rsm .rv{font-family:var(--fm);font-size:.88rem;font-weight:700}
+.rsm.rw .rv{color:var(--green)}
+.rsm.rl .rv{color:var(--red)}
+.rsm.ra .rv{color:var(--accent)}
+.rsm.ro .rv{color:var(--gold)}
+
+/* SPINNER / EMPTY */
+.loading{text-align:center;padding:4rem 2rem;color:var(--muted)}
+.spin{
+  width:40px;height:40px;border:3px solid var(--border2);
+  border-top:3px solid var(--accent);border-radius:50%;
+  animation:rot .8s linear infinite;margin:0 auto;
+}
+@keyframes rot{to{transform:rotate(360deg)}}
+.loading p{margin-top:.9rem;font-size:.82rem}
+.empty{text-align:center;padding:3.5rem 2rem;color:var(--muted)}
+.empty i{font-size:2.5rem;display:block;opacity:.25;margin-bottom:.9rem}
+.empty h4{font-size:1rem;font-weight:700;color:var(--text);opacity:.4;margin-bottom:.3rem}
+.empty p{font-size:.82rem}
+
+/* PAYMENT MODAL */
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  z-index:500;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:24px 24px 0 0;
+  width:100%;
+  max-width:100%;
+  max-height:94dvh;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  box-shadow:0 -20px 60px rgba(0,0,0,.6);
+  animation:slideUp .3s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{
+  width:36px;height:4px;border-radius:4px;
+  background:var(--border2);margin:10px auto 0;
+}
+.modal-header{
+  padding:.9rem 1.2rem .85rem;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--surface);z-index:10;
+}
+.modal-title{
+  font-weight:700;font-size:.95rem;
+  display:flex;align-items:center;gap:.5rem;
+}
+.modal-close{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);cursor:pointer;font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:.15s;flex-shrink:0;
+}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:1.1rem 1.2rem 2.5rem}
+.price-box{
+  background:linear-gradient(135deg,rgba(255,201,71,.07),rgba(255,140,0,.04));
+  border:1px solid rgba(255,201,71,.2);
+  border-radius:var(--r16);padding:1.1rem;
+  text-align:center;margin-bottom:1.1rem;
+}
+.price-crown{font-size:1.8rem;margin-bottom:.2rem}
+.price-amt{
+  font-family:var(--fm);font-size:2.4rem;font-weight:700;
+  color:var(--gold);line-height:1;
+}
+.price-desc{color:var(--muted);font-size:.74rem;margin-top:.25rem}
+.feat-list{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.1rem}
+.feat{display:flex;align-items:center;gap:.45rem;font-size:.82rem;color:var(--muted)}
+.feat i{color:var(--green);font-size:.74rem;flex-shrink:0}
+.form-label{
+  font-size:.75rem;font-weight:700;color:var(--muted);
+  display:block;margin-bottom:.4rem;letter-spacing:.3px;
+}
+.phone-input-wrap{
+  display:flex;border:1.5px solid var(--border2);
+  border-radius:var(--r12);overflow:hidden;
+  background:var(--surface2);transition:.2s;
+}
+.phone-input-wrap:focus-within{border-color:var(--accent)}
+.phone-prefix{
+  padding:.8rem 1rem;
+  background:rgba(255,255,255,.04);
+  border-right:1px solid var(--border2);
+  font-size:.9rem;flex-shrink:0;
+  display:flex;align-items:center;
+}
+.phone-inp{
+  flex:1;background:none;border:none;
+  padding:.8rem 1rem;color:var(--text);
+  font-size:16px;font-family:var(--fh);outline:none;
+}
+.phone-inp::placeholder{color:var(--muted2)}
+.err{
+  color:var(--red);font-size:.74rem;margin-top:.4rem;
+  display:none;align-items:center;gap:.3rem;
+}
+.err.show{display:flex}
+.btn-pay{
+  width:100%;border:none;
+  background:linear-gradient(135deg,var(--gold),#ff8c00);
+  color:#000;font-family:var(--fh);font-weight:700;
+  font-size:.9rem;padding:.9rem;border-radius:var(--r12);
+  cursor:pointer;margin-top:.9rem;
+  transition:all .2s;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:52px;
+}
+.btn-pay:hover:not(:disabled){box-shadow:0 8px 24px rgba(255,201,71,.35)}
+.btn-pay:disabled{opacity:.5;cursor:not-allowed}
+.secure{
+  text-align:center;color:var(--muted2);font-size:.7rem;
+  margin-top:.5rem;display:flex;align-items:center;
+  justify-content:center;gap:.3rem;
+}
+.step{text-align:center;padding:.5rem 0}
+.wait-ring{
+  width:60px;height:60px;border:4px solid var(--border2);
+  border-top:4px solid var(--accent);border-radius:50%;
+  animation:rot .9s linear infinite;margin:0 auto;
+}
+.step h6{font-size:.95rem;font-weight:700;margin:.8rem 0 .3rem;}
+.step p{color:var(--muted);font-size:.83rem;line-height:1.55}
+.step .phone-highlight{color:var(--accent);font-weight:700}
+.ref-chip{
+  display:inline-block;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:3px 12px;font-size:.7rem;
+  font-family:var(--fm);color:var(--muted);margin:.5rem 0;
+}
+.progress-bar-wrap{height:3px;background:var(--border);border-radius:3px;overflow:hidden;margin:.8rem 0}
+.progress-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 1s linear}
+.btn-cancel{
+  background:none;border:1px solid var(--border2);color:var(--muted);
+  padding:.5rem 1.2rem;border-radius:9px;cursor:pointer;
+  font-size:.8rem;margin-top:.5rem;transition:.15s;
+  font-family:var(--fh);
+}
+.btn-cancel:hover{border-color:var(--text);color:var(--text)}
+.step-success .big-emoji{font-size:3.2rem;margin-bottom:.4rem}
+.step-success h5{color:var(--green);font-size:1.1rem;font-weight:700;margin-bottom:.3rem}
+.step-success p{color:var(--muted);font-size:.84rem;margin-bottom:.9rem}
+.btn-verify{
+  background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);padding:.6rem 1.2rem;border-radius:10px;
+  cursor:pointer;font-size:.82rem;width:100%;margin-top:.5rem;
+  transition:.15s;font-family:var(--fh);
+}
+.btn-verify:hover{border-color:var(--accent);color:var(--accent)}
+
+/* PRO TOAST */
+.pro-toast{
+  position:fixed;bottom:1.2rem;left:50%;
+  transform:translateX(-50%) translateY(120px);
+  z-index:400;
+  background:var(--surface2);
+  border:1px solid rgba(255,201,71,.3);
+  border-radius:50px;
+  padding:.5rem 1rem .5rem .75rem;
+  display:flex;align-items:center;gap:.55rem;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  font-size:.78rem;
+  white-space:nowrap;
+  transition:transform .4s cubic-bezier(.32,.72,0,1),opacity .3s;
+  opacity:0;pointer-events:none;
+}
+.pro-toast.show{
+  transform:translateX(-50%) translateY(0);
+  opacity:1;pointer-events:auto;
+}
+.toast-icon{
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold),#ff8c00);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;color:#000;flex-shrink:0;
+}
+.toast-label{font-weight:700;color:var(--text)}
+.toast-cd{
+  background:var(--gold-dim);border:1px solid rgba(255,201,71,.2);
+  border-radius:20px;padding:2px 9px;
+  font-family:var(--fm);font-size:.68rem;color:var(--gold);
+}
+.toast-x{
+  background:none;border:none;color:var(--muted2);
+  cursor:pointer;font-size:.76rem;padding:2px 4px;
+  border-radius:4px;transition:.15s;
+}
+.toast-x:hover{color:var(--text)}
+
+/* FOOTER */
+footer{
+  border-top:1px solid var(--border);
+  padding:1.6rem 1rem;
+  text-align:center;
+}
+.footer-inner{
+  max-width:1120px;margin:0 auto;
+  display:flex;flex-direction:column;align-items:center;gap:.9rem;
+}
+.footer-fb{
+  display:flex;align-items:center;gap:.5rem;
+}
+.footer-fb-btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.55rem 1.2rem;border-radius:50px;
+  background:var(--fb-dim);border:1px solid rgba(24,119,242,.25);
+  color:var(--fb);font-size:.82rem;font-weight:700;
+  text-decoration:none;transition:all .2s;
+}
+.footer-fb-btn:hover{
+  background:rgba(24,119,242,.22);
+  border-color:rgba(24,119,242,.5);
+  transform:translateY(-1px);
+}
+.footer-fb-btn i{font-size:.9rem}
+.footer-copy{color:var(--muted2);font-size:.74rem}
+
+/* RESPONSIVE */
+@media(min-width:600px){
+  .modal-overlay{align-items:center;padding:1rem}
+  .modal{
+    border-radius:24px;max-width:440px;max-height:90dvh;
+    animation:popIn .25s cubic-bezier(.32,.72,0,1) both;
+  }
+  @keyframes popIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+  .modal-handle{display:none}
+  .modal-body{padding-bottom:1.6rem}
+}
+@media(max-width:680px){
+  .card-table thead{display:none}
+  .card-table,.card-table tbody,.card-table tr,.card-table td{display:block;width:100%;}
+  .card-table tr{padding:.35rem 0;border-bottom:1px solid var(--border);}
+  .card-table tr:last-child{border-bottom:none}
+  .card-table td{
+    padding:.38rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;
+    border-bottom:none;
+  }
+  .card-table td::before{
+    content:attr(data-label);
+    font-size:.64rem;font-weight:700;letter-spacing:.6px;
+    color:var(--muted2);text-transform:uppercase;
+    flex-shrink:0;margin-right:.5rem;
+  }
+  .results-toolbar{flex-direction:column;align-items:flex-start}
+  .date-nav{width:100%;justify-content:space-between}
+  .nav-tabs{flex-wrap:wrap}
+  .nav-tab{font-size:.76rem;padding:.4rem .85rem}
+  .header-inner{height:54px}
+  .pro-toast{font-size:.73rem;bottom:.7rem}
+  .fb-follow-btn .fb-text{display:none}
+}
+@media(max-width:400px){
+  .live-badge{display:none}
+}
+
+/* LIGHT MODE */
+body.light{
+  --bg:#f0f4f8;
+  --surface:#ffffff;
+  --surface2:#e8edf5;
+  --surface3:#dde3ed;
+  --border:rgba(0,0,0,0.07);
+  --border2:rgba(0,0,0,0.11);
+  --border3:rgba(0,0,0,0.16);
+  --text:#0d1520;
+  --muted:#6a7e96;
+  --muted2:#8a9ab0;
+  --accent-dim:rgba(0,180,220,0.1);
+  --accent-glow:rgba(0,180,220,0.2);
+  --pink-dim:rgba(220,30,100,0.08);
+  --gold-dim:rgba(200,140,0,0.1);
+  --green-dim:rgba(0,160,110,0.1);
+  --red-dim:rgba(220,50,70,0.1);
+  --fb-dim:rgba(24,119,242,0.08);
+}
+body.light::before,body.light::after{opacity:.4}
+body.light .header{background:rgba(240,244,248,0.92)}
+body.light .logo-name{color:var(--text)}
+body.light .modal{background:var(--surface)}
+body.light .modal-header{background:var(--surface)}
+body.light .price-box{background:rgba(200,140,0,0.06)}
+body.light .pro-toast{background:var(--surface)}
+</style>
 </head>
 <body>
-  <h1>Voter Verification</h1>
-  <form id="voterForm">
-    <input type="text" id="nationalId" placeholder="National ID" required>
-    <input type="text" id="yearOfBirth" placeholder="Year of Birth" required>
-    <input type="email" id="email" placeholder="Email" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button type="submit">Verify Voter</button>
-  </form>
-  <div id="result"></div>
 
-  <script>
-    const form = document.getElementById("voterForm");
-    const resultDiv = document.getElementById("result");
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">B</div>
+      <span class="logo-name">Bett<span>Officials</span></span>
+      <span class="logo-tag">PRO</span>
+    </a>
+    <div class="hdr-right">
+      <!-- Facebook Follow Button -->
+      <a href="https://www.facebook.com/profile.php?id=61576731217411" target="_blank" rel="noopener" class="fb-follow-btn" id="fbFollowBtn">
+        <i class="fab fa-facebook-f"></i>
+        <span class="fb-text">Follow Us</span>
+      </a>
+      <button class="theme-toggle" id="themeToggle" title="Toggle light/dark mode">
+        <i class="fas fa-sun" id="themeIcon"></i>
+      </button>
+      <div class="live-badge">
+        <span class="live-dot"></span> LIVE
+      </div>
+      <div class="pro-timer" id="hdrTimer">
+        <i class="fas fa-crown" style="font-size:.6rem;color:var(--gold)"></i>
+        <span id="hdrTimerTxt">00:00:00</span>
+      </div>
+      <img src="https://i.ibb.co/RTspjkdT/07732cbf7233.png" alt="Bett Officials" class="hdr-avatar">
+    </div>
+  </div>
+</header>
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+<!-- TABS -->
+<div class="nav-wrap">
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-tab="today">
+      <i class="fas fa-calendar-day"></i> Today
+    </button>
+    <button class="nav-tab" data-tab="results">
+      <i class="fas fa-check-double"></i> Results
+    </button>
+    <button class="nav-tab" data-tab="pro">
+      <i class="fas fa-crown"></i> Pro Tips
+      <span id="proTabBadge" style="
+        display:none;
+        background:linear-gradient(135deg,var(--gold),#ff8c00);
+        color:#000;font-size:.6rem;font-weight:700;
+        padding:1px 6px;border-radius:20px;
+        min-width:18px;text-align:center;line-height:1.6;
+      "></span>
+    </button>
+  </div>
+</div>
 
-      const data = {
-        nationalId: document.getElementById("nationalId").value,
-        yearOfBirth: document.getElementById("yearOfBirth").value,
-        email: document.getElementById("email").value,
-        password: document.getElementById("password").value
-      };
+<!-- MAIN -->
+<main class="main">
 
-      try {
-        const res = await fetch("http://localhost:3000/verify-voter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        const json = await res.json();
-        resultDiv.textContent = json.message;
-        resultDiv.style.color = json.success ? "green" : "red";
-      } catch (err) {
-        resultDiv.textContent = "Error connecting to server.";
-        resultDiv.style.color = "red";
-      }
+  <!-- TODAY -->
+  <div class="pane active" id="pane-today">
+    <div class="stats-row" id="statsRow"></div>
+    <div class="last-sync" id="lastSync"></div>
+    <div class="filter-row" id="filterRow"></div>
+    <div id="todayCards">
+      <div class="loading"><div class="spin"></div><p>Loading predictions…</p></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="pane" id="pane-results">
+    <div class="results-toolbar">
+      <div class="results-heading">
+        <i class="fas fa-calendar-check" style="color:var(--accent)"></i>
+        <span id="resultsHeading">Results</span>
+      </div>
+      <div class="date-nav">
+        <button class="date-nav-btn" id="dnPrev"><i class="fas fa-chevron-left"></i></button>
+        <span class="date-display" id="dnDisplay">—</span>
+        <button class="date-nav-btn" id="dnNext" disabled><i class="fas fa-chevron-right"></i></button>
+        <div class="date-picker-wrap">
+          <button class="date-picker-btn"><i class="fas fa-calendar-alt"></i> Pick date</button>
+          <input type="date" id="dnPicker">
+        </div>
+      </div>
+    </div>
+    <div class="week-chips" id="weekChips"></div>
+    <div class="results-summary" id="resultsSummary"></div>
+    <div id="resultsCards">
+      <div class="loading"><div class="spin"></div><p>Loading results…</p></div>
+    </div>
+  </div>
+
+  <!-- PRO TIPS -->
+  <div class="pane" id="pane-pro">
+    <div class="pro-stats-row" id="proStatsRow"></div>
+    <div id="proCards">
+      <div class="loading"><div class="spin"></div><p>Loading pro tips…</p></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="fas fa-crown" style="color:var(--gold)"></i>
+        Unlock Expert Picks
+      </div>
+      <button class="modal-close" id="modalCloseBtn"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="stepPhone">
+        <div class="price-box">
+          <div class="price-crown">👑</div>
+          <div class="price-amt">KES 49</div>
+          <div class="price-desc">One-time · Instant · Resets midnight Kenya time</div>
+        </div>
+        <div class="feat-list">
+          <div class="feat"><i class="fas fa-check-circle"></i> Higher win-rate expert selections</div>
+          <div class="feat"><i class="fas fa-check-circle"></i> Live scores & in-play tracking</div>
+          <div class="feat"><i class="fas fa-check-circle"></i> Exact score predictions</div>
+        </div>
+        <label class="form-label"><i class="fas fa-mobile-alt"></i>&nbsp; M-Pesa Number</label>
+        <div class="phone-input-wrap">
+          <span class="phone-prefix">🇰🇪</span>
+          <input type="tel" id="phoneInp" class="phone-inp"
+            placeholder="07XX XXX XXX"
+            maxlength="12" inputmode="numeric" autocomplete="tel">
+        </div>
+        <div class="err" id="phoneErr"><i class="fas fa-exclamation-circle"></i><span id="phoneErrMsg"></span></div>
+        <button class="btn-pay" id="btnPay">
+          <i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt
+        </button>
+        <div class="secure"><i class="fas fa-shield-alt"></i> M-Pesa STK Push · Encrypted · Instant</div>
+      </div>
+
+      <div id="stepWaiting" style="display:none">
+        <div class="step">
+          <div class="wait-ring"></div>
+          <h6>Check your phone!</h6>
+          <p>Enter your <strong>M-Pesa PIN</strong> on the prompt sent to<br>
+            <span class="phone-highlight" id="waitPhoneDisplay"></span></p>
+          <div class="ref-chip" id="waitRefDisplay"></div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="progressBar" style="width:100%"></div>
+          </div>
+          <small style="color:var(--muted)">Waiting up to 90 seconds…</small><br>
+          <button class="btn-cancel" id="btnCancelWait"><i class="fas fa-times"></i> Cancel</button>
+        </div>
+      </div>
+
+      <div id="stepSuccess" style="display:none">
+        <div class="step step-success">
+          <div class="big-emoji">🎉</div>
+          <h5>Payment confirmed!</h5>
+          <p>Opening your expert picks now…</p>
+          <div class="spin" style="margin-top:.8rem"></div>
+        </div>
+      </div>
+
+      <div id="stepFailed" style="display:none">
+        <div class="step">
+          <div style="font-size:2.8rem;margin-bottom:.5rem">❌</div>
+          <p id="failMsg" style="color:var(--muted);font-size:.84rem;line-height:1.55;margin-bottom:.7rem"></p>
+          <button class="btn-verify" id="btnManualVerify">
+            <i class="fas fa-sync-alt"></i> I already paid — verify
+          </button>
+          <button class="btn-pay" id="btnRetry" style="margin-top:.5rem">
+            <i class="fas fa-redo"></i> Try Again
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRO TOAST -->
+<div class="pro-toast" id="proToast">
+  <div class="toast-icon"><i class="fas fa-crown"></i></div>
+  <span class="toast-label">Expert access active</span>
+  <span class="toast-cd" id="toastCd">calculating…</span>
+  <button class="toast-x" id="toastDismiss" title="Dismiss">✕</button>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <!-- Facebook follow in footer -->
+    <div class="footer-fb">
+      <a href="https://www.facebook.com/profile.php?id=61576731217411" target="_blank" rel="noopener" class="footer-fb-btn">
+        <i class="fab fa-facebook-f"></i>
+        Follow us on Facebook
+      </a>
+    </div>
+    <p class="footer-copy">© 2025 Bett Officials · Premium Football Intelligence · Live scores auto-updated every 60s</p>
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script>
+const SERVER = 'https://voter-server-fmfr.onrender.com';
+
+firebase.initializeApp({
+  apiKey:"AIzaSyAKtfTZ5j3KYvHynIV5vfNKpclbEmrU794",
+  authDomain:"community-caa4a.firebaseapp.com",
+  databaseURL:"https://community-caa4a-default-rtdb.firebaseio.com",
+  projectId:"community-caa4a",
+  storageBucket:"community-caa4a.appspot.com",
+  messagingSenderId:"51051822203",
+  appId:"1:51051822203:web:0cd43a4e1f23594f0a36de"
+});
+const rtdb = firebase.database();
+
+function kenyaTime() {
+  const n = new Date();
+  return new Date(n.getTime() + n.getTimezoneOffset()*60000 + 10800000);
+}
+const TODAY_KEY = kenyaTime().toISOString().split('T')[0];
+
+function isPro() {
+  const stored = localStorage.getItem('pro_unlocked');
+  const date   = localStorage.getItem('pro_date');
+  if (stored === '1' && date === TODAY_KEY) return true;
+  if (date && date !== TODAY_KEY) {
+    ['pro_unlocked','pro_date','pro_phone'].forEach(k=>localStorage.removeItem(k));
+  }
+  return false;
+}
+function grantPro() {
+  localStorage.setItem('pro_unlocked', '1');
+  localStorage.setItem('pro_date', TODAY_KEY);
+}
+
+function msToMidnight() {
+  const now = kenyaTime();
+  const mid = new Date(now); mid.setHours(24,0,0,0);
+  return mid - now;
+}
+function fmtMs(ms) {
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor(ms%3600000/60000);
+  const s = Math.floor(ms%60000/1000);
+  return [h,m,s].map(n=>String(n).padStart(2,'0')).join(':');
+}
+function fmtMsShort(ms) {
+  const h = Math.floor(ms/3600000);
+  const m = Math.floor(ms%3600000/60000);
+  const s = Math.floor(ms%60000/1000);
+  return h>0 ? `${h}h ${String(m).padStart(2,'0')}m` : `${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+
+let _cdInterval = null;
+function startCountdowns() {
+  if (_cdInterval) clearInterval(_cdInterval);
+  _cdInterval = setInterval(() => {
+    const ms = msToMidnight();
+    if (ms <= 0) {
+      clearInterval(_cdInterval);
+      _cdInterval = null;
+      renderProPane(null);
+      hideToast();
+      document.getElementById('hdrTimer').classList.remove('visible');
+      return;
+    }
+    if (isPro()) {
+      document.getElementById('hdrTimer').classList.add('visible');
+      document.getElementById('hdrTimerTxt').textContent = fmtMs(ms);
+      const toastCd = document.getElementById('toastCd');
+      if (toastCd) toastCd.textContent = `expires in ${fmtMsShort(ms)}`;
+    } else {
+      document.getElementById('hdrTimer').classList.remove('visible');
+    }
+  }, 1000);
+}
+
+function showToast() {
+  const toast = document.getElementById('proToast');
+  toast.classList.add('show');
+  const ms = msToMidnight();
+  document.getElementById('toastCd').textContent = `expires in ${fmtMsShort(ms)}`;
+}
+function hideToast() {
+  document.getElementById('proToast').classList.remove('show');
+}
+document.getElementById('toastDismiss').addEventListener('click', hideToast);
+
+const esc = s => (s||'').replace(/[&<>"']/g, m=>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function fmt12(t) {
+  if (!t) return '—';
+  const [h,m] = t.split(':').map(Number);
+  if (isNaN(h)) return t;
+  return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
+}
+function matchStatus(timeStr) {
+  if (!timeStr) return null;
+  const [h,m] = timeStr.split(':').map(Number);
+  if (isNaN(h)) return null;
+  const now = kenyaTime();
+  const ko  = new Date(now); ko.setHours(h,m,0,0);
+  if (now < ko) return 'upcoming';
+  if (now < new Date(ko.getTime() + 7200000)) return 'live';
+  return 'ft';
+}
+function statusBadge(tip) {
+  if (tip.isFinished) return `<span class="status-ft"><i class="fas fa-check-double"></i> FT</span>`;
+  if (tip.isLive)     return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
+  const s = matchStatus(tip.time);
+  if (s === 'live') return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
+  if (s === 'ft')   return `<span class="status-ft"><i class="fas fa-check-double"></i> FT</span>`;
+  return `<span class="status-sched"><i class="far fa-clock"></i>&nbsp;${fmt12(tip.time)}</span>`;
+}
+function scoreCell(tip) {
+  const s = tip.liveScore || tip.outcome || null;
+  const isLive = tip.isLive || matchStatus(tip.time) === 'live';
+  const isFt   = tip.isFinished || matchStatus(tip.time) === 'ft';
+  if (isLive && s) {
+    const clk = tip.clock ? `<span class="clock-tag"> ${esc(tip.clock)}'</span>` : '';
+    return `<span class="score-badge live">${esc(s)}${clk}</span>`;
+  }
+  if (isFt && s) return `<span class="score-badge ft">${esc(s)}</span>`;
+  return `<span class="score-badge pending">—</span>`;
+}
+function resultBadge(r) {
+  if (r === 'right') return `<span class="result-w"><i class="fas fa-check"></i></span>`;
+  if (r === 'wrong') return `<span class="result-l"><i class="fas fa-times"></i></span>`;
+  return `<span class="result-p"><i class="fas fa-hourglass-half"></i> Pending</span>`;
+}
+function outcomeBadge(o) {
+  if (!o || !o.trim()) return '<span style="color:var(--muted2)">—</span>';
+  return `<span class="outcome-badge">${esc(o)}</span>`;
+}
+function groupByLeague(arr) {
+  return arr.reduce((g,t) => { (g[t.league]=g[t.league]||[]).push(t); return g; }, {});
+}
+
+/* ── Total odds calculator ── */
+function calcTotalOdds(tips) {
+  let total = 1;
+  let counted = 0;
+  tips.forEach(t => {
+    const v = parseFloat(t.odds);
+    if (!isNaN(v) && v > 0) { total *= v; counted++; }
+  });
+  return counted > 0 ? total : null;
+}
+
+function buildCard(league, tips, isPro, showOutcome) {
+  if (!tips.length) return null;
+  const sorted  = [...tips].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const liveN   = sorted.filter(t => t.isLive || matchStatus(t.time)==='live').length;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'league-card';
+  const proTag  = isPro ? `<span class="meta-pro"><i class="fas fa-crown"></i> PRO</span>` : '';
+  const cntTag  = !isPro ? `<span class="meta-count">${tips.length} tip${tips.length>1?'s':''}</span>` : '';
+  const liveTag = liveN ? `<span class="meta-live-count"><i class="fas fa-circle"></i> ${liveN} Live</span>` : '';
+  const outHdr  = showOutcome ? '<th>Score</th>' : '';
+  const rows = sorted.map(t => {
+    const outCell = showOutcome
+      ? `<td data-label="SCORE">${outcomeBadge(t.outcome)}</td>` : '';
+    return `<tr>
+      <td data-label="MATCH">
+        <div class="match-name">${esc(t.matchup||'—')}</div>
+        <div class="match-time-hint">${fmt12(t.time)}</div>
+      </td>
+      <td data-label="PREDICTION"><span class="pred-badge">${esc(t.prediction||'—')}</span></td>
+      <td data-label="STATUS">${statusBadge(t)}</td>
+      <td data-label="LIVE SCORE">${scoreCell(t)}</td>
+      <td data-label="ODDS"><span class="odds-badge">${esc(t.odds||'—')}</span></td>
+      ${outCell}
+      <td data-label="RESULT">${resultBadge(t.result)}</td>
+    </tr>`;
+  }).join('');
+  wrapper.innerHTML = `
+    <div class="card-header">
+      <div class="card-league">
+        <div class="card-league-icon"><i class="fas fa-trophy"></i></div>
+        ${esc(league)}
+      </div>
+      <div class="card-meta">${liveTag}${cntTag}${proTag}</div>
+    </div>
+    <div class="card-table-wrap">
+      <table class="card-table">
+        <thead><tr>
+          <th>Match</th><th>Prediction</th><th>Status</th>
+          <th>Live Score</th><th>Odds</th>${outHdr}<th>Result</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  return wrapper;
+}
+
+/* ── Stats Row (Today) ── */
+function renderStats(pending, finished, allTips) {
+  const wins   = finished.filter(t=>t.result==='right').length;
+  const losses = finished.filter(t=>t.result==='wrong').length;
+  const wr     = finished.length ? Math.round(wins/finished.length*100) : null;
+  const liveN  = pending.filter(t=>t.isLive||matchStatus(t.time)==='live').length;
+  const totalOdds = calcTotalOdds(allTips);
+  const el = document.getElementById('statsRow');
+  el.innerHTML = `
+    <div class="stat-chip sc-accent">
+      <span class="sv">${pending.length}</span> Active
+    </div>
+    ${liveN ? `<div class="stat-chip sc-live"><span class="sv">${liveN}</span> Live Now</div>` : ''}
+    <div class="stat-chip sc-win"><span class="sv">${wins}</span> Wins</div>
+    <div class="stat-chip sc-loss"><span class="sv">${losses}</span> Losses</div>
+    ${wr!==null ? `<div class="stat-chip"><span class="sv">${wr}%</span> Win Rate</div>` : ''}
+    ${totalOdds!==null ? `<div class="stat-chip sc-odds"><i class="fas fa-calculator" style="font-size:.7rem;margin-right:2px"></i><span class="sv">${totalOdds.toFixed(2)}</span> Total Odds</div>` : ''}
+    <div class="stat-chip"><span class="sv">${TODAY_KEY}</span></div>`;
+}
+
+/* ── Pro Stats Row ── */
+function renderProStats(proTips) {
+  const el = document.getElementById('proStatsRow');
+  if (!el) return;
+  if (!proTips.length) { el.innerHTML = ''; return; }
+  const totalOdds = calcTotalOdds(proTips);
+  const wins  = proTips.filter(t=>t.result==='right').length;
+  const losses= proTips.filter(t=>t.result==='wrong').length;
+  const wr    = (wins+losses)>0 ? Math.round(wins/(wins+losses)*100) : null;
+  el.innerHTML = `
+    <div class="stat-chip sc-accent">
+      <span class="sv">${proTips.length}</span> Expert Tips
+    </div>
+    <div class="stat-chip sc-win"><span class="sv">${wins}</span> Wins</div>
+    <div class="stat-chip sc-loss"><span class="sv">${losses}</span> Losses</div>
+    ${wr!==null ? `<div class="stat-chip"><span class="sv">${wr}%</span> Win Rate</div>` : ''}
+    ${totalOdds!==null ? `<div class="stat-chip sc-odds"><i class="fas fa-calculator" style="font-size:.7rem;margin-right:2px"></i><span class="sv">${totalOdds.toFixed(2)}</span> Total Odds</div>` : ''}`;
+}
+
+/* ── Filter Bar ── */
+let activeFilter = 'all';
+let _lastSnap    = null;
+
+function renderFilterBar(leagues) {
+  const row = document.getElementById('filterRow');
+  if (leagues.length <= 1) { row.innerHTML = ''; return; }
+  row.innerHTML =
+    `<span class="filter-lbl">Filter:</span>` +
+    ['all',...leagues].map(l => {
+      const lbl = l==='all' ? '<i class="fas fa-globe"></i> All' : l;
+      return `<button class="filter-chip ${l===activeFilter?'active':''}"
+               data-l="${esc(l)}">${lbl}</button>`;
+    }).join('');
+  row.querySelectorAll('.filter-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeFilter = btn.dataset.l;
+      row.querySelectorAll('.filter-chip').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      if (_lastSnap) renderTodayPane(_lastSnap);
     });
-  </script>
+  });
+}
+
+/* ── Today Pane ── */
+function renderTodayPane(snap) {
+  _lastSnap = snap;
+  const data  = snap.val();
+  const cards = document.getElementById('todayCards');
+  if (!data) {
+    cards.innerHTML = `<div class="empty"><i class="fas fa-futbol"></i>
+      <h4>No tips today</h4><p>Check back soon.</p></div>`;
+    renderStats([],[],[]);
+    renderFilterBar([]);
+    return;
+  }
+  const pending=[], finished=[];
+  for (const lg in data) {
+    const obj = data[lg]?.tips; if (!obj) continue;
+    Object.values(obj).filter(Boolean).forEach(t => {
+      const tip = {...t, league:lg};
+      if (t.isPro) return;
+      if (t.result==='right'||t.result==='wrong') finished.push(tip);
+      else pending.push(tip);
+    });
+  }
+  const all = [...pending,...finished];
+  renderStats(pending, finished, all);
+  const leagues = [...new Set(all.map(t=>t.league))].sort();
+  renderFilterBar(leagues);
+  const filtered = activeFilter==='all' ? all : all.filter(t=>t.league===activeFilter);
+  cards.innerHTML = '';
+  if (!filtered.length) {
+    cards.innerHTML = `<div class="empty"><i class="fas fa-clock"></i>
+      <h4>No tips match this filter</h4><p>Try "All"</p></div>`;
+    return;
+  }
+  Object.entries(groupByLeague(filtered))
+    .sort(([,a],[,b]) => {
+      const al = a.some(t=>t.isLive||matchStatus(t.time)==='live') ? 1 : 0;
+      const bl = b.some(t=>t.isLive||matchStatus(t.time)==='live') ? 1 : 0;
+      return bl - al;
+    })
+    .forEach(([lg,tips]) => {
+      const c = buildCard(lg, tips, false, true);
+      if (c) cards.appendChild(c);
+    });
+  document.getElementById('lastSync').innerHTML =
+    `<i class="fas fa-rotate"></i>&nbsp;Last synced: ${new Date().toLocaleTimeString('en-KE')}`;
+}
+
+/* ── Pro Pane ── */
+function renderProPane(snap) {
+  const el   = document.getElementById('proCards');
+  const data = snap?.val() || null;
+  let proAll = [];
+  if (data) {
+    for (const lg in data) {
+      const obj = data[lg]?.tips; if (!obj) continue;
+      Object.values(obj).filter(t=>t?.isPro===true)
+        .forEach(t => proAll.push({...t, league:lg}));
+    }
+  }
+  if (!isPro()) {
+    document.getElementById('proStatsRow').innerHTML = '';
+    el.innerHTML = `
+      <div class="pro-gate">
+        <div class="pro-gate-crown">👑</div>
+        <h3>Expert Picks Locked</h3>
+        <div class="pro-count-line">
+          <i class="fas fa-fire"></i>
+          ${proAll.length} expert prediction${proAll.length!==1?'s':''} today
+        </div>
+        <p>Higher win rate · Exclusive selections · Live scores & exact scores</p>
+        <p class="expiry-note"><i class="fas fa-clock"></i>&nbsp;Access valid today only — resets at midnight</p>
+        <button class="btn-unlock" id="btnUnlock">
+          <i class="fas fa-crown"></i> Unlock for KES 49
+        </button>
+      </div>`;
+    document.getElementById('btnUnlock')?.addEventListener('click', openModal);
+    return;
+  }
+  renderProStats(proAll);
+  el.innerHTML = '';
+  if (!proAll.length) {
+    el.innerHTML = `<div class="empty"><i class="fas fa-crown"></i>
+      <h4>No expert tips yet today</h4><p>Check back later.</p></div>`;
+    return;
+  }
+  Object.entries(groupByLeague(proAll)).forEach(([lg,tips]) => {
+    const c = buildCard(lg, tips, true, true);
+    if (c) el.appendChild(c);
+  });
+}
+
+/* ── Realtime ── */
+let _realtimeRef = null;
+function attachRealtime() {
+  if (_realtimeRef) { _realtimeRef.off('value'); _realtimeRef = null; }
+  _realtimeRef = rtdb.ref(`tips/${TODAY_KEY}`);
+  _realtimeRef.on('value', snap => {
+    renderTodayPane(snap);
+    updateProBadge(snap);
+    if (document.getElementById('pane-pro').classList.contains('active')) {
+      renderProPane(snap);
+    }
+  }, () => {
+    document.getElementById('todayCards').innerHTML =
+      `<div class="empty" style="color:var(--red)">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h4>Connection error</h4><p>Please refresh.</p>
+      </div>`;
+  });
+}
+
+/* ── Results Pane ── */
+const HIST_DAYS = 7;
+let browsDate = new Date(TODAY_KEY+'T00:00:00');
+function dateKey(d) { return d.toISOString().split('T')[0]; }
+function shiftDays(d,n){ const r=new Date(d); r.setDate(r.getDate()+n); return r; }
+function minDate(){ return shiftDays(new Date(TODAY_KEY+'T00:00:00'), -(HIST_DAYS-1)); }
+function dateLabel(d){
+  const k = dateKey(d);
+  if (k===TODAY_KEY) return 'Today';
+  const yest = dateKey(shiftDays(new Date(TODAY_KEY+'T00:00:00'),-1));
+  if (k===yest) return 'Yesterday';
+  return d.toLocaleDateString('en-KE',{weekday:'short',day:'numeric',month:'short'});
+}
+function rebuildWeekChips(){
+  const wrap = document.getElementById('weekChips');
+  const cur  = dateKey(browsDate);
+  wrap.innerHTML='';
+  for(let i=0;i<HIST_DAYS;i++){
+    const d = shiftDays(new Date(TODAY_KEY+'T00:00:00'),-i);
+    const k = dateKey(d);
+    const lbl = i===0?'Today':i===1?'Yesterday':
+      d.toLocaleDateString('en-KE',{weekday:'short',day:'numeric'});
+    const chip = document.createElement('button');
+    chip.className = 'week-chip'+(k===cur?' active':'');
+    chip.textContent = lbl;
+    chip.addEventListener('click',()=>{
+      browsDate = new Date(k+'T00:00:00');
+      syncResultsUI(); rebuildWeekChips(); loadResults(k);
+    });
+    wrap.appendChild(chip);
+  }
+}
+function syncResultsUI(){
+  const k   = dateKey(browsDate);
+  const min = dateKey(minDate());
+  document.getElementById('dnDisplay').textContent = k;
+  document.getElementById('resultsHeading').textContent = dateLabel(browsDate)+' Results';
+  document.getElementById('dnNext').disabled = (k>=TODAY_KEY);
+  document.getElementById('dnPrev').disabled = (k<=min);
+  const picker = document.getElementById('dnPicker');
+  picker.max=TODAY_KEY; picker.min=min; picker.value=k;
+}
+function loadResults(dateStr){
+  const cards = document.getElementById('resultsCards');
+  const summ  = document.getElementById('resultsSummary');
+  cards.innerHTML = `<div class="loading"><div class="spin"></div><p>Loading ${dateStr}…</p></div>`;
+  summ.innerHTML  = '';
+  rtdb.ref(`tips/${dateStr}`).once('value').then(snap=>{
+    const data = snap.val();
+    if(!data){
+      cards.innerHTML=`<div class="empty"><i class="fas fa-calendar-times"></i>
+        <h4>No data for ${dateStr}</h4><p>No tips were posted on this date.</p></div>`;
+      return;
+    }
+    const all=[];
+    for(const lg in data){
+      const obj=data[lg]?.tips; if(!obj) continue;
+      Object.values(obj).filter(Boolean).forEach(t=>all.push({...t,league:lg}));
+    }
+    if(!all.length){
+      cards.innerHTML=`<div class="empty"><i class="fas fa-futbol"></i><h4>No tips found</h4></div>`;
+      return;
+    }
+    const wins  =all.filter(t=>t.result==='right').length;
+    const losses=all.filter(t=>t.result==='wrong').length;
+    const pend  =all.filter(t=>t.result!=='right'&&t.result!=='wrong').length;
+    const wr    =(wins+losses)>0?Math.round(wins/(wins+losses)*100):null;
+    const totalOdds = calcTotalOdds(all);
+    summ.innerHTML=`
+      <div class="rsm ra"><span class="rv">${all.length}</span>&nbsp;Total</div>
+      <div class="rsm rw"><span class="rv">${wins}</span>&nbsp;Wins</div>
+      <div class="rsm rl"><span class="rv">${losses}</span>&nbsp;Losses</div>
+      ${pend>0?`<div class="rsm"><span class="rv">${pend}</span>&nbsp;Pending</div>`:''}
+      ${wr!==null?`<div class="rsm"><span class="rv">${wr}%</span>&nbsp;Win Rate</div>`:''}
+      ${totalOdds!==null?`<div class="rsm ro"><span class="rv">${totalOdds.toFixed(2)}</span>&nbsp;Total Odds</div>`:''}`;
+    cards.innerHTML='';
+    Object.entries(groupByLeague(all)).forEach(([lg,tips])=>{
+      const c=buildCard(lg,tips,tips.some(t=>t.isPro===true),true);
+      if(c)cards.appendChild(c);
+    });
+  }).catch(()=>{
+    cards.innerHTML=`<div class="empty" style="color:var(--red)">
+      <i class="fas fa-exclamation-triangle"></i><h4>Failed to load</h4></div>`;
+  });
+}
+document.getElementById('dnPrev').addEventListener('click',()=>{
+  const p=shiftDays(browsDate,-1);
+  if(dateKey(p)<dateKey(minDate())) return;
+  browsDate=p; syncResultsUI(); rebuildWeekChips(); loadResults(dateKey(browsDate));
+});
+document.getElementById('dnNext').addEventListener('click',()=>{
+  const n=shiftDays(browsDate,1);
+  if(dateKey(n)>TODAY_KEY) return;
+  browsDate=n; syncResultsUI(); rebuildWeekChips(); loadResults(dateKey(browsDate));
+});
+document.getElementById('dnPicker').addEventListener('change',e=>{
+  const v=e.target.value; if(!v) return;
+  const nd=new Date(v+'T00:00:00');
+  if(dateKey(nd)>TODAY_KEY||dateKey(nd)<dateKey(minDate())) return;
+  browsDate=nd; syncResultsUI(); rebuildWeekChips(); loadResults(v);
+});
+
+/* ── Tabs ── */
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById(`pane-${tab}`).classList.add('active');
+    if (tab === 'results') {
+      browsDate = new Date(TODAY_KEY+'T00:00:00');
+      syncResultsUI(); rebuildWeekChips(); loadResults(TODAY_KEY);
+    } else if (tab === 'pro') {
+      rtdb.ref(`tips/${TODAY_KEY}`).once('value').then(renderProPane);
+    } else {
+      if (_lastSnap) renderTodayPane(_lastSnap);
+    }
+  });
+});
+
+/* ── Payment Modal ── */
+let _stkBusy  = false;
+let _pollTimer = null;
+let _curRef    = null;
+
+function showStep(id) {
+  ['stepPhone','stepWaiting','stepSuccess','stepFailed'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = (s===id) ? 'block' : 'none';
+  });
+}
+function openModal() {
+  if (isPro()) { switchToProTab(); return; }
+  _stkBusy = false;
+  showStep('stepPhone');
+  const stored = localStorage.getItem('pro_phone');
+  const inp    = document.getElementById('phoneInp');
+  if (stored) {
+    let d = stored;
+    if (d.startsWith('254')) d = '0'+d.slice(3);
+    inp.value = d;
+  } else { inp.value = ''; }
+  document.getElementById('phoneErr').classList.remove('show');
+  resetPayBtn();
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(()=>inp.focus(), 350);
+}
+function closeModal() {
+  stopPoll();
+  _stkBusy = false;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+function resetPayBtn() {
+  const b = document.getElementById('btnPay');
+  b.disabled = false;
+  b.innerHTML = '<i class="fas fa-mobile-alt"></i> Send M-Pesa Prompt';
+}
+function stopPoll() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+}
+function switchToProTab() {
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[data-tab="pro"]').classList.add('active');
+  document.getElementById('pane-pro').classList.add('active');
+  rtdb.ref(`tips/${TODAY_KEY}`).once('value').then(renderProPane);
+}
+function onPaymentSuccess() {
+  grantPro();
+  _stkBusy = false;
+  stopPoll();
+  showStep('stepSuccess');
+  setTimeout(() => {
+    closeModal();
+    switchToProTab();
+    startCountdowns();
+    showToast();
+  }, 1400);
+}
+async function verifyByPhone(phone) {
+  if (!phone) return false;
+  try {
+    const r = await fetch(`${SERVER}/pro/check/${phone}`);
+    const d = await r.json();
+    if (d.isPro) { grantPro(); return true; }
+  } catch(e) {}
+  return false;
+}
+function startPoll(ref) {
+  stopPoll();
+  let attempts = 0;
+  const maxAttempts = 18;
+  const bar = document.getElementById('progressBar');
+  if (bar) {
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    requestAnimationFrame(() => {
+      bar.style.transition = 'width 90s linear';
+      bar.style.width = '0%';
+    });
+  }
+  _pollTimer = setInterval(async () => {
+    attempts++;
+    try {
+      const r = await fetch(`${SERVER}/pay/status/${ref}`);
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.status === 'completed') { stopPoll(); onPaymentSuccess(); return; }
+      if (d.status === 'failed') {
+        stopPoll(); _stkBusy = false;
+        const ph = localStorage.getItem('pro_phone');
+        if (ph && await verifyByPhone(ph)) { onPaymentSuccess(); return; }
+        document.getElementById('failMsg').textContent = 'Payment was cancelled or failed. Please try again.';
+        showStep('stepFailed'); return;
+      }
+      if (attempts >= maxAttempts) {
+        stopPoll(); _stkBusy = false;
+        const ph = localStorage.getItem('pro_phone');
+        if (ph && await verifyByPhone(ph)) { onPaymentSuccess(); return; }
+        document.getElementById('failMsg').textContent =
+          `Timed out waiting for payment. If you paid, tap "I already paid". Ref: ${ref}`;
+        showStep('stepFailed');
+      }
+    } catch(e) {}
+  }, 5000);
+}
+
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+document.getElementById('btnPay').addEventListener('click', async () => {
+  if (_stkBusy) return;
+  const phone = document.getElementById('phoneInp').value.trim();
+  const errEl = document.getElementById('phoneErr');
+  const errMsg= document.getElementById('phoneErrMsg');
+  errEl.classList.remove('show');
+  const digits = phone.replace(/\D/g,'');
+  if (!digits || digits.length < 9 || digits.length > 12) {
+    errMsg.textContent = 'Enter a valid Kenyan number (e.g. 0712345678)';
+    errEl.classList.add('show'); return;
+  }
+  let norm = digits;
+  if (norm.startsWith('0'))   norm = '254' + norm.slice(1);
+  if (!norm.startsWith('254')) norm = '254' + norm;
+  localStorage.setItem('pro_phone', norm);
+  _stkBusy = true;
+  const btn = document.getElementById('btnPay');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending…';
+  try {
+    const res = await fetch(`${SERVER}/pay`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({phone: norm})
+    });
+    const d = await res.json();
+    if (!d.success) throw new Error(d.error || 'Request failed');
+    _curRef = d.reference;
+    document.getElementById('waitPhoneDisplay').textContent = norm;
+    document.getElementById('waitRefDisplay').textContent   = `Ref: ${_curRef}`;
+    showStep('stepWaiting');
+    startPoll(_curRef);
+  } catch(err) {
+    _stkBusy = false;
+    resetPayBtn();
+    errMsg.textContent = err.message || 'Failed to initiate payment. Try again.';
+    errEl.classList.add('show');
+  }
+});
+document.getElementById('btnCancelWait').addEventListener('click', () => {
+  stopPoll(); _stkBusy = false;
+  showStep('stepPhone'); resetPayBtn();
+});
+document.getElementById('btnManualVerify').addEventListener('click', async () => {
+  const ph = localStorage.getItem('pro_phone');
+  if (!ph) { alert('No phone on record. Please retry payment.'); return; }
+  const ok = await verifyByPhone(ph);
+  if (ok) { onPaymentSuccess(); }
+  else { alert('Payment not confirmed yet. If you completed the M-Pesa prompt, wait a moment then try again.'); }
+});
+document.getElementById('btnRetry').addEventListener('click', () => {
+  _stkBusy = false; showStep('stepPhone'); resetPayBtn();
+});
+document.addEventListener('click', e => {
+  if (e.target.closest('#btnUnlock')) openModal();
+});
+
+/* ── Theme ── */
+(function initTheme() {
+  const saved = localStorage.getItem('bett_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    const icon = document.getElementById('themeIcon');
+    if (icon) icon.className = 'fas fa-moon';
+  }
+})();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeIcon').className = isLight ? 'fas fa-moon' : 'fas fa-sun';
+  localStorage.setItem('bett_theme', isLight ? 'light' : 'dark');
+});
+
+/* ── Pro Badge ── */
+function updateProBadge(snap) {
+  const data  = snap?.val() || null;
+  const badge = document.getElementById('proTabBadge');
+  if (!badge) return;
+  let count = 0;
+  if (data) {
+    for (const lg in data) {
+      const obj = data[lg]?.tips; if (!obj) continue;
+      count += Object.values(obj).filter(t => t?.isPro === true).length;
+    }
+  }
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ── Boot ── */
+(async function boot() {
+  const storedPh = localStorage.getItem('pro_phone');
+  if (storedPh && !isPro()) await verifyByPhone(storedPh);
+  attachRealtime();
+  startCountdowns();
+  if (isPro()) showToast();
+})();
+</script>
 </body>
 </html>
