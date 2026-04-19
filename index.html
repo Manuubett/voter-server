@@ -14,17 +14,17 @@
 <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 <meta name="theme-color" content="#050810">
 <meta name="msapplication-TileColor" content="#050810">
-<link rel="canonical" href="https://pro-prediction.bett.website/">
+<link rel="canonical" href="https://bettoficials.com/">
 
 <!-- ═══════════════════════════════════════════════
      OPEN GRAPH (Facebook / WhatsApp / LinkedIn)
 ═══════════════════════════════════════════════ -->
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://pro-prediction.bett.website">
+<meta property="og:url" content="https://bettoficials.com/">
 <meta property="og:site_name" content="Bett Officials">
 <meta property="og:title" content="Bett Officials – Today's Football Predictions & Expert Tips">
 <meta property="og:description" content="Premium football predictions updated daily. Free tips + Pro expert picks for Kenyan bettors. Live scores, exact score predictions & high win-rate selections.">
-<meta property="og:image" content="og-image.png">
+<meta property="og:image" content="https://i.ibb.co/RTspjkdT/07732cbf7233.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Bett Officials – Premium Football Predictions">
@@ -36,7 +36,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Bett Officials – Today's Football Predictions & Expert Tips">
 <meta name="twitter:description" content="Premium football predictions updated daily. Free tips + Pro expert picks for Kenyan bettors.">
-<meta name="twitter:image" content="og-image.png">
+<meta name="twitter:image" content="https://i.ibb.co/RTspjkdT/07732cbf7233.png">
 <meta name="twitter:image:alt" content="Bett Officials – Premium Football Predictions">
 
 <!-- ═══════════════════════════════════════════════
@@ -46,9 +46,9 @@
 <!-- SVG favicon – scales perfectly to any size, works in all modern browsers -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2300e5ff'/%3E%3Cstop offset='100%25' stop-color='%23ff2d78'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='22' font-family='Arial Black,sans-serif' font-weight='900' font-size='18' fill='%23000' text-anchor='middle'%3EB%3C/text%3E%3C/svg%3E">
 <!-- PNG fallback for older browsers -->
-<link rel="alternate icon" type="image/png" href="og-image.png">
+<link rel="alternate icon" type="image/png" href="https://i.ibb.co/RTspjkdT/07732cbf7233.png">
 <!-- Apple Touch Icon (iOS / Android home screen shortcut) -->
-<link rel="apple-touch-icon" sizes="180x180" href="og-image.png">
+<link rel="apple-touch-icon" sizes="180x180" href="https://i.ibb.co/RTspjkdT/07732cbf7233.png">
 <!-- Web App Manifest (PWA / "Add to Home Screen") -->
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Bett%20Officials%22%2C%22short_name%22%3A%22BettOfficials%22%2C%22description%22%3A%22Premium%20football%20predictions%20for%20Kenyan%20bettors%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23050810%22%2C%22theme_color%22%3A%22%2300e5ff%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fi.ibb.co%2FRTspjkdT%2F07732cbf7233.png%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
 
@@ -61,14 +61,14 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "Bett Officials",
-  "url": "https://pro-prediction.bett.website",
+  "url": "https://bettoficials.com/",
   "description": "Premium football predictions, free tips and expert analysis. Updated daily for Kenyan bettors.",
   "publisher": {
     "@type": "Organization",
     "name": "Bett Officials",
     "logo": {
       "@type": "ImageObject",
-      "url": "og-image.png"
+      "url": "https://i.ibb.co/RTspjkdT/07732cbf7233.png"
     },
     "sameAs": [
       "https://www.facebook.com/profile.php?id=61576731217411"
@@ -76,7 +76,7 @@
   },
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "https:///pro-prediction.bett.website./?q={search_term_string}",
+    "target": "https://bettoficials.com/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
 }
@@ -86,7 +86,7 @@
   "@context": "https://schema.org",
   "@type": "SportsOrganization",
   "name": "Bett Officials",
-  "url": "https:///pro-prediction.bett.website",
+  "url": "https://bettoficials.com/",
   "description": "Premium football predictions and expert betting tips for Kenyan bettors. Live scores, free tips and Pro expert picks.",
   "sport": "Football",
   "areaServed": {
@@ -1157,28 +1157,40 @@ function fmt12(t) {
   if (isNaN(h)) return t;
   return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`;
 }
-function matchStatus(timeStr) {
+function matchStatus(timeStr, dateStr) {
   if (!timeStr) return null;
   const [h,m] = timeStr.split(':').map(Number);
   if (isNaN(h)) return null;
   const now = kenyaTime();
-  const ko  = new Date(now); ko.setHours(h,m,0,0);
+
+  // Past date tips are never live — always finished
+  if (dateStr && dateStr !== TODAY_KEY) return 'ft';
+
+  // Build exact kick-off moment in Kenya time (today)
+  const ko = new Date(now);
+  ko.setHours(h, m, 0, 0);
+
+  // Before kick-off -> upcoming
   if (now < ko) return 'upcoming';
-  if (now < new Date(ko.getTime() + 7200000)) return 'live';
+
+  // Within 115 min of KO (90 min game + ~25 min stoppage/HT) -> live
+  if (now < new Date(ko.getTime() + 115 * 60 * 1000)) return 'live';
+
   return 'ft';
 }
 function statusBadge(tip) {
   if (tip.isFinished) return `<span class="status-ft"><i class="fas fa-check-double"></i> FT</span>`;
-  if (tip.isLive)     return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
-  const s = matchStatus(tip.time);
+  // Only trust isLive flag when tip is from today
+  if (tip.isLive && tip._date === TODAY_KEY) return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
+  const s = matchStatus(tip.time, tip._date);
   if (s === 'live') return `<span class="status-live"><i class="fas fa-circle"></i> LIVE</span>`;
   if (s === 'ft')   return `<span class="status-ft"><i class="fas fa-check-double"></i> FT</span>`;
   return `<span class="status-sched"><i class="far fa-clock"></i>&nbsp;${fmt12(tip.time)}</span>`;
 }
 function scoreCell(tip) {
   const s = tip.liveScore || tip.outcome || null;
-  const isLive = tip.isLive || matchStatus(tip.time) === 'live';
-  const isFt   = tip.isFinished || matchStatus(tip.time) === 'ft';
+  const isLive = (tip.isLive && tip._date === TODAY_KEY) || matchStatus(tip.time, tip._date) === 'live';
+  const isFt   = tip.isFinished || matchStatus(tip.time, tip._date) === 'ft';
   if (isLive && s) {
     const clk = tip.clock ? `<span class="clock-tag"> ${esc(tip.clock)}'</span>` : '';
     return `<span class="score-badge live">${esc(s)}${clk}</span>`;
@@ -1213,7 +1225,7 @@ function calcTotalOdds(tips) {
 function buildCard(league, tips, isPro, showOutcome) {
   if (!tips.length) return null;
   const sorted  = [...tips].sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  const liveN   = sorted.filter(t => t.isLive || matchStatus(t.time)==='live').length;
+  const liveN   = sorted.filter(t => (t.isLive && t._date===TODAY_KEY) || matchStatus(t.time, t._date)==='live').length;
   const wrapper = document.createElement('div');
   wrapper.className = 'league-card';
   const proTag  = isPro ? `<span class="meta-pro"><i class="fas fa-crown"></i> PRO</span>` : '';
@@ -1261,7 +1273,7 @@ function renderStats(pending, finished, allTips) {
   const wins   = finished.filter(t=>t.result==='right').length;
   const losses = finished.filter(t=>t.result==='wrong').length;
   const wr     = finished.length ? Math.round(wins/finished.length*100) : null;
-  const liveN  = pending.filter(t=>t.isLive||matchStatus(t.time)==='live').length;
+  const liveN  = pending.filter(t=>(t.isLive && t._date===TODAY_KEY)||matchStatus(t.time, t._date)==='live').length;
   const totalOdds = calcTotalOdds(allTips);
   const el = document.getElementById('statsRow');
   el.innerHTML = `
@@ -1335,7 +1347,7 @@ function renderTodayPane(snap) {
   for (const lg in data) {
     const obj = data[lg]?.tips; if (!obj) continue;
     Object.values(obj).filter(Boolean).forEach(t => {
-      const tip = {...t, league:lg};
+      const tip = {...t, league:lg, _date:TODAY_KEY};
       if (t.isPro) return;
       if (t.result==='right'||t.result==='wrong') finished.push(tip);
       else pending.push(tip);
@@ -1354,8 +1366,8 @@ function renderTodayPane(snap) {
   }
   Object.entries(groupByLeague(filtered))
     .sort(([,a],[,b]) => {
-      const al = a.some(t=>t.isLive||matchStatus(t.time)==='live') ? 1 : 0;
-      const bl = b.some(t=>t.isLive||matchStatus(t.time)==='live') ? 1 : 0;
+      const al = a.some(t=>(t.isLive&&t._date===TODAY_KEY)||matchStatus(t.time,t._date)==='live') ? 1 : 0;
+      const bl = b.some(t=>(t.isLive&&t._date===TODAY_KEY)||matchStatus(t.time,t._date)==='live') ? 1 : 0;
       return bl - al;
     })
     .forEach(([lg,tips]) => {
@@ -1375,7 +1387,7 @@ function renderProPane(snap) {
     for (const lg in data) {
       const obj = data[lg]?.tips; if (!obj) continue;
       Object.values(obj).filter(t=>t?.isPro===true)
-        .forEach(t => proAll.push({...t, league:lg}));
+        .forEach(t => proAll.push({...t, league:lg, _date:TODAY_KEY}));
     }
   }
   if (!isPro()) {
@@ -1477,6 +1489,14 @@ function loadResults(dateStr){
   const summ  = document.getElementById('resultsSummary');
   cards.innerHTML = `<div class="loading"><div class="spin"></div><p>Loading ${dateStr}…</p></div>`;
   summ.innerHTML  = '';
+  // Pro tips are only visible in Results if: it's a past date OR user has paid today
+  const isToday   = dateStr === TODAY_KEY;
+  // Pro tips are visible if:
+  //   • It's a past date (always show — game is over, result is educational)
+  //   • It's today AND the user has paid
+  //   • It's today AND the tip has already been marked (result = right/wrong)
+  //     → revealed on a tip-by-tip basis below
+  const canSeePro = !isToday || isPro();
   rtdb.ref(`tips/${dateStr}`).once('value').then(snap=>{
     const data = snap.val();
     if(!data){
@@ -1485,12 +1505,35 @@ function loadResults(dateStr){
       return;
     }
     const all=[];
+    let hiddenProCount = 0;
     for(const lg in data){
       const obj=data[lg]?.tips; if(!obj) continue;
-      Object.values(obj).filter(Boolean).forEach(t=>all.push({...t,league:lg}));
+      Object.values(obj).filter(Boolean).forEach(t=>{
+        // Allow pro tip through if: past date, user paid, OR tip has already been marked with a result
+        const isMarked = t.result === 'right' || t.result === 'wrong';
+        if(t.isPro && !canSeePro && !isMarked){ hiddenProCount++; return; }
+        all.push({...t,league:lg, _date:dateStr});
+      });
     }
     if(!all.length){
-      cards.innerHTML=`<div class="empty"><i class="fas fa-futbol"></i><h4>No tips found</h4></div>`;
+      // Show gate if only pro tips exist and user hasn't paid
+      if(hiddenProCount > 0){
+        cards.innerHTML=`
+          <div class="pro-gate" style="margin-top:.5rem">
+            <div class="pro-gate-crown">👑</div>
+            <h3>Expert Picks Locked</h3>
+            <div class="pro-count-line"><i class="fas fa-fire"></i>
+              ${hiddenProCount} expert result${hiddenProCount!==1?'s':''} from today
+            </div>
+            <p>Unlock today's Pro tips to see today's expert results.</p>
+            <button class="btn-unlock" id="btnUnlockResults">
+              <i class="fas fa-crown"></i> Unlock for KES 49
+            </button>
+          </div>`;
+        document.getElementById('btnUnlockResults')?.addEventListener('click', openModal);
+      } else {
+        cards.innerHTML=`<div class="empty"><i class="fas fa-futbol"></i><h4>No tips found</h4></div>`;
+      }
       return;
     }
     const wins  =all.filter(t=>t.result==='right').length;
@@ -1510,6 +1553,21 @@ function loadResults(dateStr){
       const c=buildCard(lg,tips,tips.some(t=>t.isPro===true),true);
       if(c)cards.appendChild(c);
     });
+    // Append a locked-pro notice at the bottom if some were hidden
+    if(hiddenProCount > 0){
+      const notice = document.createElement('div');
+      notice.style.cssText='margin-top:.6rem;padding:.75rem 1.25rem;background:var(--gold-dim);border:1px solid rgba(255,201,71,.2);border-radius:var(--r12);display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap';
+      notice.innerHTML=`
+        <span style="font-size:.82rem;color:var(--gold);display:flex;align-items:center;gap:.4rem">
+          <i class="fas fa-crown"></i>
+          +${hiddenProCount} expert tip${hiddenProCount!==1?'s':''} hidden — unlock Pro to view
+        </span>
+        <button class="btn-unlock" style="padding:.4rem 1rem;font-size:.78rem" id="btnUnlockNotice">
+          <i class="fas fa-crown"></i> Unlock KES 49
+        </button>`;
+      cards.appendChild(notice);
+      document.getElementById('btnUnlockNotice')?.addEventListener('click', openModal);
+    }
   }).catch(()=>{
     cards.innerHTML=`<div class="empty" style="color:var(--red)">
       <i class="fas fa-exclamation-triangle"></i><h4>Failed to load</h4></div>`;
