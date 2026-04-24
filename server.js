@@ -165,7 +165,8 @@ app.get('/api/test', async (req, res) => {
 // PAYMENT ROUTES
 // ════════════════════════════════════════════════════════════════════════════
 
-app.post('/pay', async (req, res) => {
+// ── Shared STK push handler ───────────────────────────────────────────────────
+async function handleStkPush(req, res) {
   const { phone, userId } = req.body;
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
 
@@ -215,15 +216,14 @@ app.post('/pay', async (req, res) => {
     console.error('[STK] Error:', errData);
     res.status(400).json({ success: false, error: 'Failed to initiate payment. Try again.' });
   }
-});
+}
 
-// Alias
-app.post('/api/stk-push', (req, res) => {
-  req.url = '/pay';
-  app._router.handle(req, res);
-});
+// Both paths, one handler
+app.post('/pay',          handleStkPush);
+app.post('/api/stk-push', handleStkPush);
 
-app.get('/pay/status/:txRef', async (req, res) => {
+// ── Shared payment status handler ─────────────────────────────────────────────
+async function handlePayStatus(req, res) {
   const { txRef } = req.params;
   if (!txRef || txRef.length < 5) return res.status(400).json({ success: false, error: 'Invalid txRef' });
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
@@ -238,13 +238,11 @@ app.get('/pay/status/:txRef', async (req, res) => {
     console.error('[STATUS] Error:', err.message);
     res.status(500).json({ success: false, error: 'Could not check status' });
   }
-});
+}
 
-// Alias
-app.get('/api/pay/status/:txRef', (req, res) => {
-  req.url = `/pay/status/${req.params.txRef}`;
-  app._router.handle(req, res);
-});
+// Both paths, one handler
+app.get('/pay/status/:txRef',     handlePayStatus);
+app.get('/api/pay/status/:txRef', handlePayStatus);
 
 app.post('/api/webhook', async (req, res) => {
   res.json({ received: true });
