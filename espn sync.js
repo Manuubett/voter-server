@@ -234,6 +234,14 @@ const LEAGUE_SLUGS = {
 // ── ESPN base URL ────────────────────────────────────────────────
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
+// ── Helper: get today's date string in YYYYMMDD (UTC) ───────────
+// Using UTC avoids timezone drift where a late-night match
+// on e.g. 2025-04-24T23:30Z could be fetched as "tomorrow" on
+// a server that runs ahead of UTC.
+function todayUTC() {
+  return new Date().toISOString().split('T')[0].replace(/-/g, '');
+}
+
 // ── Prediction → result auto-classification ──────────────────────
 function classify(prediction, score, espnWinner) {
   if (!prediction || !score) return null;
@@ -313,10 +321,13 @@ function resolveSlug(leagueKey) {
 }
 
 // ── Fetch ESPN scoreboard for one league ────────────────────────
-async function fetchESPN(leagueSlug) {
+// FIX: Now accepts an explicit dateStr (YYYYMMDD) and appends
+//      &limit=100 so ESPN doesn't silently truncate results.
+async function fetchESPN(leagueSlug, dateStr) {
   const { default: fetch } = await import('node-fetch');
-  const url = `${ESPN_BASE}/${leagueSlug}/scoreboard`;
-  const res = await fetch(url, {
+  const date = dateStr || todayUTC();
+  const url  = `${ESPN_BASE}/${leagueSlug}/scoreboard?dates=${date}&limit=100`;
+  const res  = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 BettOfficials/1.0' },
     timeout: 10000,
   });
@@ -382,7 +393,9 @@ function parseEvent(ev) {
 // ── Main sync function ───────────────────────────────────────────
 async function syncDay() {
   const db       = getDB();
-  const todayKey = new Date().toISOString().split('T')[0];
+  // FIX: use UTC date for both Firebase key lookup AND ESPN fetching
+  const dateStr  = todayUTC();                             // e.g. "20250424"
+  const todayKey = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6)}`; // "2025-04-24"
   const tipsRef  = db.ref(`tips/${todayKey}`);
 
   // 1. Load today's tips
@@ -423,9 +436,10 @@ async function syncDay() {
     return { tipsUpdated: 0, errors: 0 };
   }
 
-  console.log(`[ESPN-SYNC] Fetching ${slugSet.size} league(s) for ${espnIdMap.size} linked tip(s)`);
+  console.log(`[ESPN-SYNC] Fetching ${slugSet.size} league(s) for ${espnIdMap.size} linked tip(s) [date=${dateStr}]`);
 
   // 3. Fetch ESPN scoreboards (in parallel, capped at 8 concurrent)
+  //    FIX: pass dateStr explicitly to every fetchESPN call
   const eventMap = new Map();  // espnId → parsedEvent
   let   errors   = 0;
 
@@ -433,7 +447,7 @@ async function syncDay() {
   const PARALLEL = 8;
   for (let i = 0; i < slugArr.length; i += PARALLEL) {
     const batch = slugArr.slice(i, i + PARALLEL);
-    const results = await Promise.allSettled(batch.map(slug => fetchESPN(slug)));
+    const results = await Promise.allSettled(batch.map(slug => fetchESPN(slug, dateStr)));
     results.forEach((r, idx) => {
       if (r.status === 'fulfilled') {
         const events = r.value?.events || [];
@@ -460,7 +474,9 @@ async function syncDay() {
   for (const [espnId, info] of espnIdMap) {
     const ev = eventMap.get(espnId);
     if (!ev) {
-      // Match not found in fetched data — could be a different date or slug mismatch
+      // Match not found in fetched data — could be a slug mismatch or ESPN
+      // listing the game on a different date. Log so it's easy to diagnose.
+      console.warn(`[ESPN-SYNC] ⚠️  espnId ${espnId} (${info.matchup}) not found in ${info.slug} [date=${dateStr}]`);
       continue;
     }
 
@@ -548,22 +564,21 @@ function registerRoutes(app) {
     const { slug, dates, q } = req.query;
     if (!slug) return res.status(400).json({ success: false, error: 'slug required' });
     try {
-      const { default: fetch } = await import('node-fetch');
-      let url = `${ESPN_BASE}/${slug}/scoreboard`;
-      if (dates) url += `?dates=${dates}`;
-      const r    = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 BettOfficials/1.0' }, timeout: 10000 });
-      const json = await r.json();
+      // FIX: reuse fetchESPN (which now includes &limit=100) instead of
+      //      building a raw URL that might omit the limit param.
+      const dateStr = dates || todayUTC();
+      const json    = await fetchESPN(slug, dateStr);
       let events = (json?.events || []).map(ev => {
         const p  = parseEvent(ev);
         return {
-          espnId   : p.espnId,
-          homeName : p.homeName,
-          awayName : p.awayName,
-          startTime: ev.date,
-          isLive   : p.isLive,
+          espnId    : p.espnId,
+          homeName  : p.homeName,
+          awayName  : p.awayName,
+          startTime : ev.date,
+          isLive    : p.isLive,
           isFinished: p.isFinished,
-          clock    : p.clock,
-          scoreStr : p.scoreStr,
+          clock     : p.clock,
+          scoreStr  : p.scoreStr,
           leagueName: json?.leagues?.[0]?.name || '',
         };
       });
