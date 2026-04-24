@@ -41,9 +41,9 @@ if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY && FIRE
         clientEmail: FIREBASE_CLIENT_EMAIL,
         privateKey,
       }),
-      databaseURL: FIREBASE_DATABASE_URL,  // THIS IS CRITICAL!
+      databaseURL: FIREBASE_DATABASE_URL,
     });
-    db = admin.database();  // Realtime Database, NOT Firestore!
+    db = admin.database();
     console.log('✅ Firebase Realtime Database connected');
   } catch (err) {
     console.error('❌ Firebase init failed:', err.message);
@@ -105,560 +105,14 @@ function normalisePhone(phone) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// ESPN SYNC MODULE - FOR REALTIME DATABASE
+// ESPN SYNC — delegated entirely to espn-sync.js
+// All /api/espn/* routes and the 60s cron live there.
 // ════════════════════════════════════════════════════════════════════════════
-
-const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
-
-// League name → ESPN slug mapping
-const LEAGUE_SLUGS = {
-  // Top 5 European
-  'Premier League':               'eng.1',
-  'Premier League (ENG)':         'eng.1',
-  'La Liga':                      'esp.1',
-  'La Liga (ESP)':                'esp.1',
-  'Serie A':                      'ita.1',
-  'Serie A (ITA)':                'ita.1',
-  'Bundesliga':                   'ger.1',
-  'Bundesliga (GER)':             'ger.1',
-  'Ligue 1':                      'fra.1',
-  'Ligue 1 (FRA)':                'fra.1',
-
-  // UEFA Competitions
-  'UEFA Champions League':        'uefa.champions',
-  'Champions League':             'uefa.champions',
-  'Europa League':                'uefa.europa',
-  'Conference League':            'uefa.europa.conf',
-  'UEFA Super Cup':               'uefa.super_cup',
-  'UEFA Nations League':          'uefa.nations',
-  'UEFA Youth League':            'uefa.youth',
-
-  // International
-  'World Cup':                    'fifa.world',
-  'European Championship':        'uefa.euro',
-  'Copa America':                 'conmebol.america',
-  'AFCON':                        'caf.nations',
-  'FIFA Club World Cup':          'fifa.cwc',
-  'CONCACAF Gold Cup':            'concacaf.gold',
-  'AFC Asian Cup':                'afc.asian.cup',
-  'African Nations Championship': 'caf.championship',
-  'Olympic Football Tournament':  'fifa.olympics',
-
-  // Europe Domestic
-  'EFL Championship':             'eng.2',
-  'Championship':                 'eng.2',
-  'Scottish Premiership':         'sco.1',
-  'Primeira Liga':                'por.1',
-  'Primeira Liga (POR)':          'por.1',
-  'Eredivisie':                   'ned.1',
-  'Eredivisie (NED)':             'ned.1',
-  'Eerste Divisie':               'ned.2',
-  'Eerste Divisie (NED)':         'ned.2',
-  'Belgian Pro League':           'bel.1',
-  'Challenger Pro League':        'bel.2',
-  'Belgian Challenger Pro League': 'bel.2',
-  'Turkish Süper Lig':            'tur.1',
-  'Super Lig':                    'tur.1',
-  'Swiss Super League':           'sui.1',
-  'Austrian Bundesliga':          'aut.1',
-  'Danish Superliga':             'den.1',
-  'Polish Ekstraklasa':           'pol.1',
-  'Ukrainian Premier League':     'ukr.1',
-  'Saudi Pro League':             'sau.1',
-  'Serie B':                      'ita.2',
-  '2. Bundesliga':                'ger.2',
-  'Ligue 2':                      'fra.2',
-
-  // Europe – Lower Leagues
-  'Serie C (ITA)':                'ita.3',
-  'Serie C':                      'ita.3',
-  '3. Liga (GER)':                'ger.3',
-  '3. Liga':                      'ger.3',
-  'Championnat National (FRA)':   'fra.3',
-  'Championnat National':         'fra.3',
-  'La Liga 2 (ESP)':              'esp.2',
-  'Primera Federación (ESP)':     'esp.3',
-  'Primera Federación':           'esp.3',
-  'Segunda Federación (ESP)':     'esp.4',
-  'Liga Portugal 2 (POR)':        'por.2',
-  'Tweede Divisie (NED)':         'ned.3',
-  'TFF First League (TUR)':       'tur.2',
-  'Belgian National Division 1 (BEL)': 'bel.3',
-  'Super League Greece (GRE)':    'gre.1',
-  'Super League Greece 2':        'gre.2',
-  'Swiss Challenge League (SUI)': 'sui.2',
-  '2. Liga (AUT)':                'aut.2',
-  '1st Division (DEN)':           'den.2',
-  'Eliteserien (NOR)':            'nor.1',
-  'OBOS-ligaen (NOR)':            'nor.2',
-  'Superettan (SWE)':             'swe.2',
-  'Allsvenskan':                  'swe.1',
-  'Veikkausliiga (FIN)':          'fin.1',
-  'I Liga (POL)':                 'pol.2',
-  'Persha Liha (UKR)':            'ukr.2',
-
-  // Africa (additional)
-  'Algerian Ligue 1 (ALG)':       'alg.1',
-  'Algerian Ligue 1':             'alg.1',
-  'Tunisian Ligue Professionnelle 1 (TUN)': 'tun.1',
-  'Ghana Premier League (GHA)':   'gha.1',
-  'Ghana Premier League':         'gha.1',
-  'Nigerian Premier League (NGA)': 'nga.1',
-  'Nigerian Premier League':      'nga.1',
-  'Tanzanian Premier League (TZA)': 'tza.1',
-  'Ugandan Premier League (UGA)': 'uga.1',
-
-  // Existing Africa
-  'Egyptian Premier League':      'egy.1',
-  'South African Premier Division': 'rsa.1',
-  'Kenyan Premier League':        'ken.1',
-  'KPL':                          'ken.1',
-  'Moroccan Botola':              'mar.1',
-
-  // South America
-  'Brasileirão Série A':          'bra.1',
-  'Argentine Primera División':   'arg.1',
-  'Copa Libertadores':            'conmebol.libertadores',
-  'Copa Sudamericana':            'conmebol.sudamericana',
-  'Brasileirão Série B':          'bra.2',
-  'Campeonato Brasileiro Série B': 'bra.2',
-
-  // South America – Domestic
-  'Primera División (Chile)':     'chi.1',
-  'Primera División Chile':       'chi.1',
-  'Primera B (Chile)':            'chi.2',
-  'Primera A (Colombia)':         'col.1',
-  'Primera A Colombia':           'col.1',
-  'Primera B (Colombia)':         'col.2',
-  'Liga 1 (Peru)':                'per.1',
-  'Liga 1 Peru':                  'per.1',
-  'Serie A (Ecuador)':            'ecu.1',
-  'Serie A Ecuador':              'ecu.1',
-  'Primera División (Uruguay)':   'uru.1',
-  'Primera División Uruguay':     'uru.1',
-  'Liga Profesional (Venezuela)': 'ven.1',
-  'Liga Profesional Venezuela':   'ven.1',
-
-  // North America
-  'MLS':                          'usa.1',
-  'MLS (USA)':                    'usa.1',
-  'Liga MX':                      'mex.1',
-  'Liga de Expansión MX':         'mex.2',
-  'Liga de Expansión MX (MEX)':   'mex.2',
-  'USL Championship':             'usa.2',
-  'USL League One':               'usa.3',
-  'USL League One (USA)':         'usa.3',
-  'Canadian Premier League':      'can.1',
-
-  // Asia
-  'J1 League':                    'jpn.1',
-  'J2 League':                    'jpn.2',
-  'K League 1':                   'kor.1',
-  'K League 2':                   'kor.2',
-  'AFC Champions League':         'afc.champions',
-  'Chinese Super League (CHN)':   'chn.1',
-  'Chinese Super League':         'chn.1',
-  'China League One (CHN)':       'chn.2',
-  'China League One':             'chn.2',
-  'Indian Super League (IND)':    'ind.1',
-  'Indian Super League':          'ind.1',
-  'I-League':                     'ind.2',
-  'Thai League 1 (THA)':          'tha.1',
-  'Thai League 1':                'tha.1',
-  'Thai League 2':                'tha.2',
-  'Saudi First Division League (KSA)': 'sau.2',
-  'Saudi First Division League':  'sau.2',
-  'Qatar Stars League (QAT)':     'qat.1',
-  'Qatar Stars League':           'qat.1',
-  'UAE Pro League (UAE)':         'are.1',
-  'UAE Pro League':               'are.1',
-  'Indonesian Liga 1 (IDN)':      'idn.1',
-  'Indonesian Liga 1':            'idn.1',
-
-  // Cups (VERY IMPORTANT)
-  'FA Cup (ENG)':                 'eng.fa',
-  'FA Cup':                       'eng.fa',
-  'EFL Cup (ENG)':                'eng.league_cup',
-  'EFL Cup':                      'eng.league_cup',
-  'Copa del Rey (ESP)':           'esp.copa',
-  'Copa del Rey':                 'esp.copa',
-  'Coppa Italia (ITA)':           'ita.coppa',
-  'Coppa Italia':                 'ita.coppa',
-  'DFB-Pokal (GER)':              'ger.dfb',
-  'DFB-Pokal':                    'ger.dfb',
-  'Coupe de France (FRA)':        'fra.coupe',
-  'Coupe de France':              'fra.coupe',
-  'KNVB Cup (NED)':               'ned.knvb',
-  'KNVB Cup':                     'ned.knvb',
-  'Turkish Cup (TUR)':            'tur.cup',
-  'Turkish Cup':                  'tur.cup',
-  'Scottish Cup (SCO)':           'sco.scottish_cup',
-  'Scottish Cup':                 'sco.scottish_cup',
-  'Belgian Cup (BEL)':            'bel.cup',
-  'Belgian Cup':                  'bel.cup',
-};
-// Track sync stats
-let syncStats = {
-  lastRun: null,
-  tipsUpdated: 0,
-  errors: 0,
-  leaguesFetched: 0
-};
-
-function classify(prediction, score, winner) {
-  if (!prediction || !score) return null;
-  const p   = prediction.trim().toLowerCase();
-  const hg  = score.home;
-  const ag  = score.away;
-  const tot = hg + ag;
-
-  if (p === 'home win' || p === '1')                    return winner === 'home' ? 'right' : 'wrong';
-  if (p === 'away win' || p === '2')                    return winner === 'away' ? 'right' : 'wrong';
-  if (p === 'draw' || p === 'x')                        return winner === 'draw' ? 'right' : 'wrong';
-  if (p === '1x')                                       return (winner === 'home' || winner === 'draw') ? 'right' : 'wrong';
-  if (p === 'x2')                                       return (winner === 'away' || winner === 'draw') ? 'right' : 'wrong';
-  if (p === '12')                                       return (winner === 'home' || winner === 'away') ? 'right' : 'wrong';
-  if (p === 'btts' || p === 'gg' || p.includes('both teams to score'))
-                                                        return (hg > 0 && ag > 0) ? 'right' : 'wrong';
-  if (p === 'ng' || p.includes('no btts'))              return (hg === 0 || ag === 0) ? 'right' : 'wrong';
-  if (p.startsWith('over')) {
-    const line = parseFloat(p.replace(/[^0-9.]/g, ''));
-    if (!isNaN(line)) return tot > line ? 'right' : 'wrong';
-  }
-  if (p.startsWith('under')) {
-    const line = parseFloat(p.replace(/[^0-9.]/g, ''));
-    if (!isNaN(line)) return tot < line ? 'right' : 'wrong';
-  }
-  return null;
-}
-
-async function fetchESPNScoreboard(slug, retries = 2, dateStr = null) {
-  const dateParam = dateStr ? `?dates=${dateStr}` : '';
-  const url = `${ESPN_BASE}/${slug}/scoreboard${dateParam}`;
-  
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const res = await axios.get(url, {
-        headers: { 'User-Agent': 'BettOfficials/1.0' },
-        timeout: 10000,
-      });
-      return res.data;
-    } catch (err) {
-      if (i === retries) throw err;
-      console.log(`[ESPN] Retry ${i + 1}/${retries} for ${slug}`);
-      await new Promise(r => setTimeout(r, 2000 * (i + 1)));
-    }
-  }
-}
-
-function parseESPNEvent(ev) {
-  const comp       = ev.competitions?.[0];
-  const statusType = ev.status?.type;
-  const home       = comp?.competitors?.find(c => c.homeAway === 'home');
-  const away       = comp?.competitors?.find(c => c.homeAway === 'away');
-
-  let homeScore = -1, awayScore = -1;
-  if (home?.score !== undefined) homeScore = parseInt(home.score, 10);
-  if (away?.score !== undefined) awayScore = parseInt(away.score, 10);
-  if (isNaN(homeScore) && home?.displayScore !== undefined) homeScore = parseInt(home.displayScore, 10);
-  if (isNaN(awayScore) && away?.displayScore !== undefined) awayScore = parseInt(away.displayScore, 10);
-  
-  const hasScore = homeScore >= 0 && awayScore >= 0;
-
-  let winner = null;
-  if (hasScore && statusType?.completed) {
-    if (homeScore > awayScore) winner = 'home';
-    else if (awayScore > homeScore) winner = 'away';
-    else winner = 'draw';
-  }
-
-  const isLive = statusType?.state === 'in' || 
-                 statusType?.state === 'live' || 
-                 statusType?.description === 'In Progress' ||
-                 (statusType?.completed === false && hasScore);
-  
-  const isFinished = statusType?.completed === true || 
-                     statusType?.state === 'post' || 
-                     statusType?.state === 'final';
-
-  let displayClock = ev.status?.displayClock || ev.status?.clock || null;
-  if (isLive && !displayClock && hasScore) {
-    const period = ev.status?.period || 1;
-    if (period === 1) displayClock = '45+';
-    else if (period === 2) displayClock = '90';
-    else displayClock = `${period === 3 ? '105' : '120'}'`;
-  }
-
-  return {
-    espnId:     String(ev.id),
-    isLive:     isLive,
-    isFinished: isFinished,
-    clock:      displayClock,
-    period:     ev.status?.period || null,
-    score:      hasScore ? { home: homeScore, away: awayScore } : null,
-    scoreStr:   hasScore ? `${homeScore} - ${awayScore}` : null,
-    winner,
-    homeName:   home?.team?.displayName || home?.team?.name || '',
-    awayName:   away?.team?.displayName || away?.team?.name || '',
-    startTime:  ev.date || null,
-  };
-}
-
-async function espnSyncDay() {
-  const startTime = Date.now();
-  
-  if (!db) {
-    console.error('[ESPN] Firebase not available');
-    return;
-  }
-
-  const todayKey = new Date().toISOString().split('T')[0];
-  const tipsRef = db.ref(`tips/${todayKey}`);
-
-  let snapshot;
-  try { 
-    snapshot = await tipsRef.once('value');
-  } catch (e) { 
-    console.error('[ESPN] Firebase read error:', e.message);
-    syncStats.errors++;
-    return; 
-  }
-  
-  const data = snapshot.val();
-  if (!data) {
-    console.log(`[ESPN] No tips for ${todayKey}`);
-    return;
-  }
-
-  // Collect ESPN IDs
-  const espnIdMap = new Map();
-  const leagueSet = new Set();
-
-  for (const leagueKey of Object.keys(data)) {
-    const tips = data[leagueKey]?.tips || {};
-    for (const [tipId, tip] of Object.entries(tips)) {
-      if (tip?.espnId) { 
-        espnIdMap.set(String(tip.espnId), {
-          leagueKey,
-          tipId,
-          prediction: tip.prediction,
-          matchup: tip.matchup
-        });
-        leagueSet.add(leagueKey); 
-      }
-    }
-  }
-
-  if (!espnIdMap.size) {
-    console.log('[ESPN] No ESPN IDs found in tips');
-    return;
-  }
-
-  console.log(`[ESPN] Syncing ${espnIdMap.size} matches across ${leagueSet.size} leagues`);
-
-  // Fetch ESPN events
-  const eventMap = {};
-  let leaguesFetched = 0;
-  let liveMatchesFound = 0;
-  
-  for (const leagueKey of leagueSet) {
-    const slug = LEAGUE_SLUGS[leagueKey];
-    if (!slug) { 
-      console.warn(`[ESPN] No slug for: "${leagueKey}"`); 
-      continue; 
-    }
-    
-    try {
-      if (leaguesFetched > 0) {
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      
-      const json = await fetchESPNScoreboard(slug);
-      const events = json?.events || [];
-      
-      for (const ev of events) {
-        const parsed = parseESPNEvent(ev);
-        eventMap[parsed.espnId] = parsed;
-        
-        if (parsed.isLive && parsed.scoreStr) {
-          liveMatchesFound++;
-          console.log(`[ESPN] 🔴 LIVE: ${parsed.homeName} vs ${parsed.awayName} - ${parsed.scoreStr}${parsed.clock ? ` (${parsed.clock})` : ''}`);
-        }
-      }
-      
-      leaguesFetched++;
-      console.log(`[ESPN] ${leagueKey} (${slug}): ${events.length} events`);
-    } catch (err) {
-      console.error(`[ESPN] Failed to fetch ${leagueKey}:`, err.message);
-      syncStats.errors++;
-    }
-  }
-
-  // Build updates for Realtime Database
-  const updates = {};
-  let changed = 0;
-
-  for (const [espnId, tipInfo] of espnIdMap) {
-    const ev = eventMap[espnId];
-    if (!ev) continue;
-
-    const path = `${tipInfo.leagueKey}/tips/${tipInfo.tipId}`;
-
-    if (ev.scoreStr) {
-      updates[`${path}/liveScore`] = ev.scoreStr;
-      updates[`${path}/outcome`]   = ev.scoreStr;
-      console.log(`[ESPN] Updating ${tipInfo.matchup}: ${ev.scoreStr}`);
-    }
-    
-    updates[`${path}/isLive`]     = ev.isLive;
-    updates[`${path}/isFinished`] = ev.isFinished;
-    updates[`${path}/lastUpdated`] = Date.now();
-    
-    if (ev.clock)  updates[`${path}/clock`]  = ev.clock;
-    if (ev.period) updates[`${path}/period`] = ev.period;
-
-    if (ev.isFinished && ev.winner && tipInfo.prediction) {
-      const verdict = classify(tipInfo.prediction, ev.score, ev.winner);
-      if (verdict) {
-        updates[`${path}/result`] = verdict;
-        console.log(`[ESPN] ✅ Auto-result: ${tipInfo.matchup} → ${verdict} (${ev.scoreStr})`);
-        
-        if (verdict === 'right') {
-          await sendTelegram(`🎯 <b>WINNER!</b>\n${tipInfo.matchup}\nPrediction: ${tipInfo.prediction}\nScore: ${ev.scoreStr}\n✅ Result: RIGHT`);
-        }
-      }
-    }
-    changed++;
-  }
-
-  if (changed > 0 && Object.keys(updates).length > 0) {
-    try {
-      await tipsRef.update(updates);
-      const duration = Date.now() - startTime;
-      console.log(`[ESPN] ✅ Updated ${Object.keys(updates).length} fields for ${changed} tips in ${duration}ms`);
-      if (liveMatchesFound > 0) {
-        console.log(`[ESPN] 🟢 ${liveMatchesFound} live matches with scores updated`);
-      }
-      
-      syncStats = {
-        lastRun: new Date().toISOString(),
-        tipsUpdated: changed,
-        errors: syncStats.errors,
-        leaguesFetched,
-        duration,
-        liveMatches: liveMatchesFound
-      };
-    } catch (err) {
-      console.error('[ESPN] Update error:', err.message);
-      syncStats.errors++;
-    }
-  } else {
-    console.log(`[ESPN] No updates needed for ${todayKey}`);
-  }
-}
-
-// Start ESPN cron
-let isSyncing = false;
-
-async function safeEspnSync() {
-  if (isSyncing) {
-    console.log('[ESPN] Previous sync still running, skipping...');
-    return;
-  }
-  
-  isSyncing = true;
-  try {
-    await espnSyncDay();
-  } catch (err) {
-    console.error('[ESPN] Sync error:', err);
-    syncStats.errors++;
-  } finally {
-    isSyncing = false;
-  }
-}
-
-const ESPN_INTERVAL = 60_000;
-console.log('[ESPN] Cron starting — syncing every 60s');
-
-setTimeout(() => {
-  safeEspnSync().catch(e => console.error('[ESPN] Initial sync error:', e.message));
-  setInterval(() => safeEspnSync().catch(e => console.error('[ESPN] Cron error:', e.message)), ESPN_INTERVAL);
-}, 5000);
+const { registerRoutes } = require('./espn-sync');
+registerRoutes(app);
 
 // ════════════════════════════════════════════════════════════════════════════
-// ESPN PROXY ENDPOINTS
-// ════════════════════════════════════════════════════════════════════════════
-
-app.get('/api/espn/search', async (req, res) => {
-  const { slug, q, dates } = req.query;
-  if (!slug) return res.status(400).json({ success: false, error: 'slug required' });
-  
-  try {
-    const json   = await fetchESPNScoreboard(slug, 2, dates || null);
-    let events   = (json?.events || []).map(parseESPNEvent);
-    
-    if (q) {
-      const query = q.toLowerCase();
-      events = events.filter(e =>
-        e.homeName.toLowerCase().includes(query) ||
-        e.awayName.toLowerCase().includes(query)
-      );
-    }
-    
-    res.json({ success: true, events });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/espn/leagues', (req, res) => {
-  res.json({ success: true, leagues: LEAGUE_SLUGS });
-});
-
-app.get('/api/espn/sync-status', (req, res) => {
-  res.json({ 
-    success: true, 
-    syncStats,
-    isRunning: isSyncing,
-    firebaseConnected: !!db
-  });
-});
-
-app.post('/api/espn/manual-sync', async (req, res) => {
-  try {
-    await safeEspnSync();
-    res.json({ success: true, message: 'Sync triggered', syncStats });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/espn/debug/:espnId', async (req, res) => {
-  const { espnId } = req.params;
-  if (!espnId) return res.status(400).json({ error: 'ESPN ID required' });
-  
-  for (const [leagueName, slug] of Object.entries(LEAGUE_SLUGS)) {
-    try {
-      const json = await fetchESPNScoreboard(slug);
-      const events = json?.events || [];
-      const match = events.find(ev => String(ev.id) === espnId);
-      if (match) {
-        const parsed = parseESPNEvent(match);
-        return res.json({ 
-          success: true, 
-          match: parsed, 
-          league: leagueName, 
-          slug,
-          raw: match
-        });
-      }
-    } catch(e) {}
-  }
-  res.json({ success: false, error: 'Match not found in any league' });
-});
-
-// ════════════════════════════════════════════════════════════════════════════
-// PAYMENT ROUTES
+// GENERAL ROUTES
 // ════════════════════════════════════════════════════════════════════════════
 
 app.get('/', (req, res) => {
@@ -669,8 +123,7 @@ app.get('/', (req, res) => {
     firebase: db ? 'connected' : 'not configured',
     paynecta: API_KEY ? 'configured' : 'missing key',
     price:    `KES ${PRO_PRICE}`,
-    espnSync: 'active (60s interval)',
-    syncStats
+    espnSync: 'active — see /api/espn/sync-status',
   });
 });
 
@@ -708,6 +161,10 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// PAYMENT ROUTES
+// ════════════════════════════════════════════════════════════════════════════
+
 app.post('/pay', async (req, res) => {
   const { phone, userId } = req.body;
   if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
@@ -738,7 +195,6 @@ app.post('/pay', async (req, res) => {
                   response.data?.transaction_reference       ||
                   `BETT-${Date.now()}`;
 
-    // Store in Realtime Database
     if (db) {
       await db.ref(`proPayments/${txRef}`).set({
         phone:     mobile,
@@ -761,7 +217,8 @@ app.post('/pay', async (req, res) => {
   }
 });
 
-app.post('/api/stk-push', async (req, res) => {
+// Alias
+app.post('/api/stk-push', (req, res) => {
   req.url = '/pay';
   app._router.handle(req, res);
 });
@@ -783,7 +240,8 @@ app.get('/pay/status/:txRef', async (req, res) => {
   }
 });
 
-app.get('/api/pay/status/:txRef', async (req, res) => {
+// Alias
+app.get('/api/pay/status/:txRef', (req, res) => {
   req.url = `/pay/status/${req.params.txRef}`;
   app._router.handle(req, res);
 });
@@ -852,10 +310,14 @@ app.get('/pro/check/:phone', async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════════════════════════════
+
 app.listen(PORT, () => {
   console.log(`✅ Bett Officials server running on port ${PORT}`);
   console.log(`💰 Pro price: KES ${PRO_PRICE}`);
   console.log(`🔗 Webhook URL: ${SERVER_BASE}/api/webhook`);
-  console.log(`📡 ESPN Sync: active with monitoring endpoints`);
+  console.log(`📡 ESPN Sync: delegated to espn-sync.js`);
   console.log(`📊 Sync status: /api/espn/sync-status`);
 });
