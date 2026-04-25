@@ -806,7 +806,7 @@ app.listen(PORT, () => {
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL           = process.env.AI_MODEL || 'meta-llama/llama-3.3-8b-instruct:free'; // free by default
+const AI_MODEL = process.env.AI_MODEL || 'openrouter/free'; // free by default
 
 if (!OPENROUTER_API_KEY) console.warn('⚠️  OPENROUTER_API_KEY not set — /api/grok/predict will fail');
 
