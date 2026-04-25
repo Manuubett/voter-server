@@ -234,14 +234,6 @@ const LEAGUE_SLUGS = {
 // ── ESPN base URL ────────────────────────────────────────────────
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
-// ── Helper: get today's date string in YYYYMMDD (UTC) ───────────
-// Using UTC avoids timezone drift where a late-night match
-// on e.g. 2025-04-24T23:30Z could be fetched as "tomorrow" on
-// a server that runs ahead of UTC.
-function todayUTC() {
-  return new Date().toISOString().split('T')[0].replace(/-/g, '');
-}
-
 // ── Prediction → result auto-classification ──────────────────────
 function classify(prediction, score, espnWinner) {
   if (!prediction || !score) return null;
@@ -320,19 +312,31 @@ function resolveSlug(leagueKey) {
   return null;
 }
 
-// ── Fetch ESPN scoreboard for one league ────────────────────────
-// FIX: Now accepts an explicit dateStr (YYYYMMDD) and appends
-//      &limit=100 so ESPN doesn't silently truncate results.
+// ── todayUTC helper ───────────────────────────────────────────────
+function todayUTC() {
+  return new Date().toISOString().split('T')[0].replace(/-/g, '');
+}
+
+// ── Fetch ESPN scoreboard for one league ─────────────────────────
+// FIX: node-fetch v3 ignores the `timeout` option — use AbortController.
+//      Always pass explicit date + &limit=100 to avoid ESPN truncation.
 async function fetchESPN(leagueSlug, dateStr) {
   const { default: fetch } = await import('node-fetch');
   const date = dateStr || todayUTC();
   const url  = `${ESPN_BASE}/${leagueSlug}/scoreboard?dates=${date}&limit=100`;
-  const res  = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 BettOfficials/1.0' },
-    timeout: 10000,
-  });
-  if (!res.ok) throw new Error(`ESPN ${leagueSlug} HTTP ${res.status}`);
-  return res.json();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 BettOfficials/1.0' },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`ESPN ${leagueSlug} HTTP ${res.status}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ── Parse ESPN event into a clean object ────────────────────────
@@ -369,7 +373,7 @@ function parseEvent(ev) {
   let displayClock = ev.status?.displayClock || ev.status?.clock || null;
   if (isLive && !displayClock && hasScore) {
     const period = ev.status?.period || 1;
-    displayClock = period === 1 ? '45+' : period === 2 ? '90+' : `${period === 3 ? '105' : '120'}+'`;
+    displayClock = period === 1 ? '45+' : period === 2 ? '90+' : (period === 3 ? '105+' : '120+');
   }
 
   // scoreStr format used by the frontend  e.g. "2 - 1"
@@ -393,8 +397,8 @@ function parseEvent(ev) {
 // ── Main sync function ───────────────────────────────────────────
 async function syncDay() {
   const db       = getDB();
-  // FIX: use UTC date for both Firebase key lookup AND ESPN fetching
-  const dateStr  = todayUTC();                             // e.g. "20250424"
+  // Always use UTC date to avoid timezone drift (Render may run ahead/behind local)
+  const dateStr  = todayUTC();                                           // "20250424"
   const todayKey = `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6)}`; // "2025-04-24"
   const tipsRef  = db.ref(`tips/${todayKey}`);
 
@@ -436,10 +440,9 @@ async function syncDay() {
     return { tipsUpdated: 0, errors: 0 };
   }
 
-  console.log(`[ESPN-SYNC] Fetching ${slugSet.size} league(s) for ${espnIdMap.size} linked tip(s) [date=${dateStr}]`);
+  console.log(`[ESPN-SYNC] Fetching ${slugSet.size} league(s) for ${espnIdMap.size} linked tip(s)`);
 
   // 3. Fetch ESPN scoreboards (in parallel, capped at 8 concurrent)
-  //    FIX: pass dateStr explicitly to every fetchESPN call
   const eventMap = new Map();  // espnId → parsedEvent
   let   errors   = 0;
 
@@ -474,9 +477,9 @@ async function syncDay() {
   for (const [espnId, info] of espnIdMap) {
     const ev = eventMap.get(espnId);
     if (!ev) {
-      // Match not found in fetched data — could be a slug mismatch or ESPN
-      // listing the game on a different date. Log so it's easy to diagnose.
-      console.warn(`[ESPN-SYNC] ⚠️  espnId ${espnId} (${info.matchup}) not found in ${info.slug} [date=${dateStr}]`);
+      // ESPN ID not found in expected league — tip may have been added under a different
+      // league name than what ESPN uses. Log it so admin can diagnose.
+      console.warn(`[ESPN-SYNC] ⚠️  ID ${espnId} (${info.matchup}) not in "${info.leagueKey}" [slug=${info.slug}]`);
       continue;
     }
 
@@ -560,16 +563,15 @@ function registerRoutes(app) {
   });
 
   // GET /api/espn/search?slug=eng.1&dates=20250424&q=arsenal
+  // FIX: reuse fetchESPN() so timeout/limit fixes apply here too.
   app.get('/api/espn/search', async (req, res) => {
     const { slug, dates, q } = req.query;
     if (!slug) return res.status(400).json({ success: false, error: 'slug required' });
     try {
-      // FIX: reuse fetchESPN (which now includes &limit=100) instead of
-      //      building a raw URL that might omit the limit param.
       const dateStr = dates || todayUTC();
       const json    = await fetchESPN(slug, dateStr);
       let events = (json?.events || []).map(ev => {
-        const p  = parseEvent(ev);
+        const p = parseEvent(ev);
         return {
           espnId    : p.espnId,
           homeName  : p.homeName,
@@ -579,7 +581,7 @@ function registerRoutes(app) {
           isFinished: p.isFinished,
           clock     : p.clock,
           scoreStr  : p.scoreStr,
-          leagueName: json?.leagues?.[0]?.name || '',
+          leagueName: json?.leagues?.[0]?.name || json?.leagues?.[0]?.abbreviation || '',
         };
       });
       if (q) {
@@ -591,8 +593,70 @@ function registerRoutes(app) {
       }
       res.json({ success: true, events });
     } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
+      const isTimeout = err.name === 'AbortError';
+      res.status(isTimeout ? 504 : 500).json({ success: false, error: isTimeout ? 'ESPN timeout' : err.message });
     }
+  });
+
+  // GET /api/espn/search-all?dates=20250424&q=arsenal
+  // Fans out across ALL slugs on the server — used by admin "Search All" button
+  app.get('/api/espn/search-all', async (req, res) => {
+    const { dates, q } = req.query;
+    const dateStr = dates || todayUTC();
+    const ALL_SLUGS = [
+      'eng.1','esp.1','ita.1','ger.1','fra.1',
+      'uefa.champions','uefa.europa','uefa.europa.conf','uefa.super_cup','uefa.nations',
+      'fifa.world','uefa.euro','conmebol.america','caf.nations','fifa.cwc','concacaf.gold','afc.cup',
+      'caf.champions','caf.confed',
+      'eng.2','eng.3','eng.4','eng.fa','eng.league_cup',
+      'esp.2','esp.3','esp.copa_del_rey',
+      'ita.2','ita.3','ita.coppa_italia',
+      'ger.2','ger.3','ger.dfb_pokal',
+      'fra.2','fra.3','fra.coupe_de_france',
+      'por.1','por.2','ned.1','ned.2','ned.cup',
+      'bel.1','bel.2','bel.cup','tur.1','tur.2','tur.cup',
+      'sco.1','sco.cup','sui.1','sui.2','aut.1','aut.2',
+      'den.1','den.2','nor.1','nor.2','swe.1','swe.2','fin.1',
+      'pol.1','pol.2','ukr.1','ukr.2','rus.1',
+      'cze.1','rou.1','srb.1','cro.1','hun.1','bul.1','isr.1','gre.1','gre.2',
+      'usa.1','usa.2','usa.3','can.1','mex.1','mex.2',
+      'bra.1','bra.2','bra.3','arg.1','arg.2',
+      'conmebol.libertadores','conmebol.sudamericana',
+      'chi.1','chi.2','col.1','col.2','per.1','ecu.1','uru.1','ven.1','bol.1','par.1',
+      'jpn.1','jpn.2','kor.1','kor.2','afc.champions',
+      'chn.1','chn.2','ind.1','tha.1','sau.1','sau.2','qat.1','are.1','idn.1','irn.1',
+      'egy.1','rsa.1','ken.1','mar.1','alg.1','tun.1','gha.1','nga.1','tza.1','uga.1','cmr.1','sen.1',
+    ];
+    const BATCH = 15;
+    const seen  = new Map();
+    let failed  = 0;
+
+    for (let i = 0; i < ALL_SLUGS.length; i += BATCH) {
+      const batch = ALL_SLUGS.slice(i, i + BATCH);
+      const settled = await Promise.allSettled(
+        batch.map(async slug => {
+          const json = await fetchESPN(slug, dateStr);
+          const lName = json?.leagues?.[0]?.name || json?.leagues?.[0]?.abbreviation || '';
+          return (json?.events || []).map(ev => ({ ...parseEvent(ev), _slug: slug, leagueName: lName, startTime: ev.date }));
+        })
+      );
+      settled.forEach(r => {
+        if (r.status === 'fulfilled') r.value.forEach(ev => { if (!seen.has(ev.espnId)) seen.set(ev.espnId, ev); });
+        else failed++;
+      });
+    }
+
+    let events = [...seen.values()];
+    if (q) {
+      const ql = q.toLowerCase();
+      events = events.filter(e => e.homeName.toLowerCase().includes(ql) || e.awayName.toLowerCase().includes(ql));
+    }
+    events.sort((a, b) => {
+      if (a.isLive && !b.isLive) return -1;
+      if (!a.isLive && b.isLive) return 1;
+      return new Date(a.startTime || 0) - new Date(b.startTime || 0);
+    });
+    res.json({ success: true, total: events.length, slugsSearched: ALL_SLUGS.length, slugsFailed: failed, events });
   });
 }
 
