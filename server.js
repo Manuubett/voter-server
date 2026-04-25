@@ -804,7 +804,7 @@ app.listen(PORT, () => {
 
 const GROK_API_KEY = process.env.GROK_API_KEY;
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
-const GROK_MODEL   = 'grok-beta';   // xAI current live model
+const GROK_MODEL = 'grok-4.20';    // xAI current live model
 
 if (!GROK_API_KEY) console.warn('⚠️  GROK_API_KEY not set — /api/grok/predict will fail');
 
