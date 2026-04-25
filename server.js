@@ -797,16 +797,18 @@ app.listen(PORT, () => {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// GROK AI PROXY  — paste this block into your server.js
-// Place it after:  app.use(express.json());
-// Requires:        GROK_API_KEY in your .env
+// AI PROXY via OpenRouter — free tier available
+// Get free key at: https://openrouter.ai/keys
+// Requires: OPENROUTER_API_KEY in your .env
+// Free models: mistralai/mistral-7b-instruct, meta-llama/llama-3-8b-instruct
+// Paid Grok:   x-ai/grok-3-mini-beta  (once you add credits)
 // ════════════════════════════════════════════════════════════════════════════
 
-const GROK_API_KEY = process.env.GROK_API_KEY;
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
-const GROK_MODEL = 'grok-4.20';    // xAI current live model
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions';
+const AI_MODEL           = process.env.AI_MODEL || 'meta-llama/llama-3.3-8b-instruct:free'; // free by default
 
-if (!GROK_API_KEY) console.warn('⚠️  GROK_API_KEY not set — /api/grok/predict will fail');
+if (!OPENROUTER_API_KEY) console.warn('⚠️  OPENROUTER_API_KEY not set — /api/grok/predict will fail');
 
 /**
  * POST /api/grok/predict
@@ -815,11 +817,11 @@ if (!GROK_API_KEY) console.warn('⚠️  GROK_API_KEY not set — /api/grok/pred
  */
 app.post('/api/grok/predict', async (req, res) => {
   const { prompt } = req.body;
-  if (!prompt)       return res.status(400).json({ success: false, error: 'prompt is required' });
-  if (!GROK_API_KEY) return res.status(503).json({ success: false, error: 'GROK_API_KEY not configured on server' });
+  if (!prompt)            return res.status(400).json({ success: false, error: 'prompt is required' });
+  if (!OPENROUTER_API_KEY) return res.status(503).json({ success: false, error: 'OPENROUTER_API_KEY not configured on server' });
 
   const payload = {
-    model: GROK_MODEL,
+    model: AI_MODEL,
     max_tokens: 1024,
     messages: [
       {
@@ -830,34 +832,29 @@ app.post('/api/grok/predict', async (req, res) => {
     ],
   };
 
-  console.log('[Grok] → POST', GROK_API_URL, 'model:', GROK_MODEL);
+  console.log('[AI] → POST', OPENROUTER_URL, 'model:', AI_MODEL);
 
   try {
-    const response = await axios.post(GROK_API_URL, payload, {
+    const response = await axios.post(OPENROUTER_URL, payload, {
       headers: {
-        'Authorization': `Bearer ${GROK_API_KEY}`,
-        'Content-Type':  'application/json',
+        'Authorization':  `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type':   'application/json',
+        'HTTP-Referer':   process.env.SERVER_URL || 'https://your-app.onrender.com',
+        'X-Title':        'Bett Officials',
       },
       timeout: 40000,
     });
 
-    const text = response.data?.choices?.[0]?.message?.content || 'No response from Grok.';
-    console.log(`[Grok] ✅ Done — ${text.length} chars`);
-    res.json({ success: true, text, model: GROK_MODEL });
+    const text = response.data?.choices?.[0]?.message?.content || 'No response from AI.';
+    console.log(`[AI] ✅ Done — ${text.length} chars, model: ${AI_MODEL}`);
+    res.json({ success: true, text, model: AI_MODEL });
 
   } catch (err) {
-    // Forward the full xAI error detail to logs + client for easy debugging
-    const xaiError  = err.response?.data;
-    const xaiMsg    = xaiError?.error?.message || xaiError?.message || err.message;
-    const xaiStatus = err.response?.status || 500;
-
-    console.error('[Grok] ❌ Status:', xaiStatus);
-    console.error('[Grok] ❌ Body:',   JSON.stringify(xaiError || err.message));
-
-    res.status(xaiStatus).json({
-      success: false,
-      error:   xaiMsg,
-      detail:  xaiError || null,
-    });
+    const detail  = err.response?.data;
+    const message = detail?.error?.message || detail?.message || err.message;
+    const status  = err.response?.status || 500;
+    console.error('[AI] ❌ Status:', status);
+    console.error('[AI] ❌ Body:',   JSON.stringify(detail || err.message));
+    res.status(status).json({ success: false, error: message, detail: detail || null });
   }
 });
