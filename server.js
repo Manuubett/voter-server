@@ -797,12 +797,14 @@ app.listen(PORT, () => {
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// GROK AI PROXY  — add this block to your server.js
-// Requires: GROK_API_KEY in your .env
+// GROK AI PROXY  — paste this block into your server.js
+// Place it after:  app.use(express.json());
+// Requires:        GROK_API_KEY in your .env
 // ════════════════════════════════════════════════════════════════════════════
 
 const GROK_API_KEY = process.env.GROK_API_KEY;
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const GROK_MODEL   = 'grok-beta';   // xAI current live model
 
 if (!GROK_API_KEY) console.warn('⚠️  GROK_API_KEY not set — /api/grok/predict will fail');
 
@@ -810,49 +812,52 @@ if (!GROK_API_KEY) console.warn('⚠️  GROK_API_KEY not set — /api/grok/pred
  * POST /api/grok/predict
  * Body: { prompt: string }
  * Returns: { success: true, text: string }
- *
- * Called by the FOOTY.AI frontend instead of hitting Anthropic directly.
- * The server holds the Grok API key — never exposed to the browser.
  */
 app.post('/api/grok/predict', async (req, res) => {
   const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ success: false, error: 'prompt required' });
+  if (!prompt)       return res.status(400).json({ success: false, error: 'prompt is required' });
   if (!GROK_API_KEY) return res.status(503).json({ success: false, error: 'GROK_API_KEY not configured on server' });
 
-  try {
-    const response = await axios.post(
-      GROK_API_URL,
+  const payload = {
+    model: GROK_MODEL,
+    max_tokens: 1024,
+    messages: [
       {
-        model: 'grok-3-mini',          // or 'grok-3' for full power
-        max_tokens: 1000,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert football analyst and sports betting advisor. 
-You analyze statistical data and provide insightful, structured match predictions. 
-Be concise, data-driven, and direct. 
-Format your response with clear sections using ### for headers. 
-Use bullet points for lists. Highlight key insights.`,
-          },
-          { role: 'user', content: prompt },
-        ],
+        role: 'system',
+        content: 'You are an expert football analyst and sports betting advisor. Analyze statistical data and provide structured match predictions. Be concise, data-driven, and direct. Format your response with clear sections using ### for headers. Use bullet points for lists.',
       },
-      {
-        headers: {
-          'Authorization': `Bearer ${GROK_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 30000,
-      }
-    );
+      { role: 'user', content: prompt },
+    ],
+  };
+
+  console.log('[Grok] → POST', GROK_API_URL, 'model:', GROK_MODEL);
+
+  try {
+    const response = await axios.post(GROK_API_URL, payload, {
+      headers: {
+        'Authorization': `Bearer ${GROK_API_KEY}`,
+        'Content-Type':  'application/json',
+      },
+      timeout: 40000,
+    });
 
     const text = response.data?.choices?.[0]?.message?.content || 'No response from Grok.';
-    console.log(`[Grok] ✅ Prediction generated (${text.length} chars)`);
-    res.json({ success: true, text });
+    console.log(`[Grok] ✅ Done — ${text.length} chars`);
+    res.json({ success: true, text, model: GROK_MODEL });
 
   } catch (err) {
-    const errMsg = err.response?.data?.error?.message || err.message;
-    console.error('[Grok] ❌ Error:', errMsg);
-    res.status(500).json({ success: false, error: errMsg });
+    // Forward the full xAI error detail to logs + client for easy debugging
+    const xaiError  = err.response?.data;
+    const xaiMsg    = xaiError?.error?.message || xaiError?.message || err.message;
+    const xaiStatus = err.response?.status || 500;
+
+    console.error('[Grok] ❌ Status:', xaiStatus);
+    console.error('[Grok] ❌ Body:',   JSON.stringify(xaiError || err.message));
+
+    res.status(xaiStatus).json({
+      success: false,
+      error:   xaiMsg,
+      detail:  xaiError || null,
+    });
   }
 });
