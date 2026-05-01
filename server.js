@@ -709,8 +709,142 @@ app.get('/pro/check/:phone', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});  // ═══════════════════════════════════════════════════════════════
+// ADD THESE 3 ROUTES TO YOUR server.js  virtual  scripts  
+// Paste them right before the "── AI Proxy" section
+// ═══════════════════════════════════════════════════════════════
+
+
+// ── 1. STK Push alias (public page uses /api/payment/stk-push) ───────────────
+// Your existing /pay route handles Paynecta perfectly.
+// This alias just maps the new endpoint to the same logic.
+app.post('/api/payment/stk-push', async (req, res) => {
+  const { phone, amount, tipId, pkg, description } = req.body;
+
+  if (!phone) return res.status(400).json({ success: false, error: 'Phone number required' });
+  if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE)
+    return res.status(500).json({ success: false, error: 'Server misconfigured – missing Paynecta credentials' });
+
+  const mobile = normalisePhone(phone);
+  const payAmount = amount || PRO_PRICE; // use amount from request (20, 49, or 79)
+
+  try {
+    const payload = {
+      code: MERCHANT_CODE,
+      mobile_number: mobile,
+      amount: payAmount,
+      description: description || 'BettOfficials Prediction Unlock',
+      callback_url: `${SERVER_BASE}/api/webhook`,
+    };
+
+    const response = await axios.post(`${PAYNECTA_URL}/payment/initialize`, payload, {
+      headers: paynectaHeaders(),
+      timeout: 15000,
+    });
+
+    const txRef =
+      response.data?.data?.transaction_reference ||
+      response.data?.data?.CheckoutRequestID     ||
+      response.data?.transaction_reference       ||
+      `BETT-${Date.now()}`;
+
+    // Save to Firebase with tipId + pkg for later unlock
+    if (db) {
+      await db.ref(`proPayments/${txRef}`).set({
+        phone: mobile, amount: payAmount, txRef,
+        tipId: tipId || null,
+        pkg: pkg || 'single',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      }).catch(err => console.error('[STK] Firebase write failed:', err.message));
+    }
+
+    sendTelegram(`📱 <b>STK PUSH</b>\n📞 ${mobile}\n💰 Ksh ${payAmount}\n🎯 Tip: ${tipId || '—'}\n🆔 ${txRef}`);
+
+    res.json({
+      success: true,
+      checkoutRequestId: txRef,   // public page polls with this
+      reference: txRef,
+      message: 'STK push sent. Check your phone.',
+    });
+  } catch (err) {
+    console.error('[STK] Error:', err.response?.data || err.message);
+    res.status(400).json({ success: false, error: 'Failed to initiate payment. Try again.' });
+  }
 });
 
+
+// ── 2. Payment status (query-param version) ───────────────────────────────────
+// Public page polls: GET /api/payment/status?checkoutId=BETT-xxxxx
+app.get('/api/payment/status', async (req, res) => {
+  const checkoutId = req.query.checkoutId;
+  if (!checkoutId) return res.status(400).json({ success: false, error: 'checkoutId required' });
+  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
+
+  try {
+    const snap = await db.ref(`proPayments/${checkoutId}`).once('value');
+    if (!snap.exists()) return res.json({ success: true, status: 'pending', paid: false });
+
+    const data   = snap.val();
+    const isPaid = data.status === 'completed' || data.status === 'confirmed';
+
+    return res.json({
+      success: true,
+      status: isPaid ? 'completed' : (data.status || 'pending'),
+      paid: isPaid,
+      tipId: data.tipId || null,
+      pkg:   data.pkg   || 'single',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Could not check status' });
+  }
+});
+
+
+// ── 3. Manual bypass — verify M-Pesa code ────────────────────────────────────
+// User claims they already paid. We check Firebase for a matching mpesaCode.
+app.post('/api/payment/verify-bypass', async (req, res) => {
+  const { code, tipId } = req.body;
+  if (!code) return res.status(400).json({ success: false, error: 'code required' });
+  if (!db)   return res.status(503).json({ success: false, error: 'Firebase not configured' });
+
+  const cleanCode = code.trim().toUpperCase();
+
+  try {
+    // Search proPayments for a record with this mpesaCode
+    const snap = await db.ref('proPayments').orderByChild('mpesaCode').equalTo(cleanCode).once('value');
+
+    if (!snap.exists()) {
+      // Also check proSubscribers (webhook stores mpesaCode there too)
+      const subSnap = await db.ref('proSubscribers').once('value');
+      const subs    = subSnap.val() || {};
+      const match   = Object.values(subs).find(s => s.mpesaCode === cleanCode);
+
+      if (!match) {
+        return res.json({ success: false, error: 'Code not found. If you just paid, wait 30 seconds and try again.' });
+      }
+
+      sendTelegram(`🔓 <b>BYPASS UNLOCK (subscriber)</b>\n🧾 ${cleanCode}\n🎯 Tip: ${tipId || '—'}`);
+      return res.json({ success: true, message: 'Verified via subscriber record', pkg: 'single' });
+    }
+
+    // Found in proPayments
+    const records = Object.values(snap.val());
+    const record  = records[0];
+
+    if (record.status !== 'completed' && record.status !== 'confirmed') {
+      return res.json({ success: false, error: 'Payment found but not yet confirmed. Wait a moment.' });
+    }
+
+    sendTelegram(`🔓 <b>BYPASS UNLOCK</b>\n🧾 ${cleanCode}\n📞 ${record.phone || '—'}\n🎯 Tip: ${tipId || '—'}`);
+    return res.json({ success: true, message: 'Payment verified', pkg: record.pkg || 'single', tipId: record.tipId });
+
+  } catch (err) {
+    console.error('[Bypass] Error:', err.message);
+    res.status(500).json({ success: false, error: 'Verification failed. Try again.' });
+  }
+});
+// ── end  of  virtual  script) ─────────────────────────────────────────────────────
 // ── AI Proxy (OpenRouter) ─────────────────────────────────────────────────────
 app.post('/api/grok/predict', async (req, res) => {
   const { prompt } = req.body;
