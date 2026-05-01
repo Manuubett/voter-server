@@ -731,15 +731,17 @@ app.post('/api/payment/stk-push', async (req, res) => {
   if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE)
     return res.status(500).json({ success: false, error: 'Server misconfigured – missing Paynecta credentials' });
 
-  // Paynecta requires 07XXXXXXXX format (10 digits, local Kenyan)
+  // Paynecta wants 2547XXXXXXXX or 2541XXXXXXXX (no + sign, no leading 0)
   function toPaynectaPhone(raw) {
     let p = raw.toString().replace(/\D/g, '');
-    if (p.startsWith('254')) p = '0' + p.slice(3); // 254712345678 → 0712345678
-    if (p.startsWith('7') || p.startsWith('1')) p = '0' + p; // 712345678 → 0712345678
-    return p; // should now be 07XXXXXXXX or 01XXXXXXXX
+    if (p.startsWith('0'))   p = '254' + p.slice(1);  // 0712345678  → 2547123456780
+    if (p.startsWith('7') || p.startsWith('1')) p = '254' + p; // 712345678 → 254712345678
+    // already 254XXXXXXXXX — leave as is
+    return p;
   }
   const mobile = toPaynectaPhone(phone);
-  const payAmount = amount || PRO_PRICE; // use amount from request (20, 49, or 79)
+  console.log(`[STK] Phone received: ${phone} → normalized: ${mobile}`);
+  const payAmount = amount || PRO_PRICE;
 
   try {
     const payload = {
