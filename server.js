@@ -715,6 +715,12 @@ app.get('/pro/check/:phone', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 
+// ═══════════════════════════════════════════════════════════════
+// ADD THESE 3 ROUTES TO YOUR server.js
+// Paste them right before the "── AI Proxy" section
+// ═══════════════════════════════════════════════════════════════
+
+
 // ── 1. STK Push alias (public page uses /api/payment/stk-push) ───────────────
 // Your existing /pay route handles Paynecta perfectly.
 // This alias just maps the new endpoint to the same logic.
@@ -725,7 +731,14 @@ app.post('/api/payment/stk-push', async (req, res) => {
   if (!API_KEY || !USER_EMAIL || !MERCHANT_CODE)
     return res.status(500).json({ success: false, error: 'Server misconfigured – missing Paynecta credentials' });
 
-  const mobile = normalisePhone(phone);
+  // Paynecta requires 07XXXXXXXX format (10 digits, local Kenyan)
+  function toPaynectaPhone(raw) {
+    let p = raw.toString().replace(/\D/g, '');
+    if (p.startsWith('254')) p = '0' + p.slice(3); // 254712345678 → 0712345678
+    if (p.startsWith('7') || p.startsWith('1')) p = '0' + p; // 712345678 → 0712345678
+    return p; // should now be 07XXXXXXXX or 01XXXXXXXX
+  }
+  const mobile = toPaynectaPhone(phone);
   const payAmount = amount || PRO_PRICE; // use amount from request (20, 49, or 79)
 
   try {
