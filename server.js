@@ -529,32 +529,118 @@ app.get('/api/espn/debug/:espnId', async (req, res) => {
 });
 
 // ── Public Tips routes ────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// REPLACE your existing  app.post('/api/tips/post', ...)
+// with this version — it saves ALL fields the admin sends
+// ═══════════════════════════════════════════════════════════
+
 app.post('/api/tips/post', async (req, res) => {
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
-  const { homeTeam, awayTeam, aiText, probabilities, scores, league, matchDate } = req.body;
-  if (!homeTeam || !awayTeam) return res.status(400).json({ success: false, error: 'homeTeam and awayTeam are required' });
-  const dateKey = matchDate || new Date().toISOString().split('T')[0];
+
+  const body = req.body;
+  const { homeTeam, awayTeam } = body;
+
+  if (!homeTeam || !awayTeam) {
+    return res.status(400).json({ success: false, error: 'homeTeam and awayTeam are required' });
+  }
+
+  const dateKey = body.matchDate || new Date().toISOString().split('T')[0];
   const tipId   = `${homeTeam}_${awayTeam}_${Date.now()}`.replace(/\s+/g, '_');
+
+  // ── Normalise all possible field name aliases ─────────────────────────────
+  // tip / selection / market / pick / tipText → all the same thing
+  const tip =
+    body.tip        ||
+    body.selection  ||
+    body.market     ||
+    body.pick       ||
+    body.tipText    ||
+    (body.markets?.length ? body.markets.join(' + ') : null) ||
+    '';
+
+  // kickoff / kick_off / kickOff / matchTime / time
+  const kickoff =
+    body.kickoff    ||
+    body.kick_off   ||
+    body.kickOff    ||
+    body.matchTime  ||
+    body.time       ||
+    '';
+
+  // verdict / summary / description
+  const verdict =
+    body.verdict    ||
+    body.summary    ||
+    body.description ||
+    '';
+
+  // matchLabel / match
+  const matchLabel =
+    body.matchLabel ||
+    body.match      ||
+    `${homeTeam} vs ${awayTeam}`;
+
+  // ── Build tip object — save everything ───────────────────────────────────
   const tipData = {
-    id: tipId, homeTeam, awayTeam,
-    aiText: aiText || '',
-    probabilities: probabilities || null,
-    scores: scores || [],
-    league: league || '',
-    matchDate: dateKey, dateKey,
-    postedAt: new Date().toISOString(),
+    id:           tipId,
+    homeTeam,
+    awayTeam,
+    matchLabel,
+
+    // tip selection (all aliases so any reader works)
+    tip,
+    selection:    tip,
+    market:       tip,
+    pick:         tip,
+    tipText:      tip,
+
+    // kickoff (all aliases)
+    kickoff,
+    kick_off:     kickoff,
+    kickOff:      kickoff,
+    matchTime:    kickoff,
+
+    // verdict
+    verdict,
+
+    // markets array (Quick Post sends this)
+    markets:      body.markets || (tip ? [tip] : []),
+
+    // source — 'ai-predict' | 'quick-post' | etc.
+    source:       body.source || 'ai-predict',
+
+    // prediction engine fields
+    aiText:       body.aiText        || '',
+    probabilities:body.probabilities || null,
+    probs:        body.probabilities || null,
+    scores:       body.scores        || [],
+    confidence:   body.confidence    || null,
+
+    // metadata
+    league:       body.league        || '',
+    matchDate:    dateKey,
+    dateKey,
+    postedAt:     new Date().toISOString(),
   };
+
   try {
     await db.ref(`publicTips/${dateKey}/${tipId}`).set(tipData);
-    console.log(`[Tips] ✅ Posted: ${homeTeam} vs ${awayTeam} → ${dateKey}/${tipId}`);
-    sendTelegram(`📋 <b>TIP POSTED</b>\n${homeTeam} vs ${awayTeam}\n${league || '—'} · ${dateKey}`);
+    console.log(`[Tips] ✅ Posted: ${homeTeam} vs ${awayTeam} | tip="${tip}" | kickoff="${kickoff}" → ${dateKey}/${tipId}`);
+
+    sendTelegram(
+      `📋 <b>TIP POSTED</b>\n` +
+      `⚽ ${matchLabel}\n` +
+      `🎯 ${tip || '—'}\n` +
+      `🕐 Kick-off: ${kickoff || '—'}\n` +
+      `📋 ${body.league || '—'} · ${dateKey}`
+    );
+
     res.json({ success: true, tipId, dateKey, message: 'Tip posted' });
   } catch (err) {
     console.error('[Tips] ❌ Post error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 app.get('/api/tips/public', async (req, res) => {
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
   const dateKey = req.query.date || new Date().toISOString().split('T')[0];
