@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOOTY.AI — Today's Tips</title>
+<meta name="description" content="Free daily football betting tips powered by AI prediction engine">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#efefef;--text2:#888;--text3:#444;
+  --green:#b8ff5a;--green-d:rgba(184,255,90,0.08);--green-b:rgba(184,255,90,0.18);
+  --amber:#ffc43d;--amber-d:rgba(255,196,61,0.08);--amber-b:rgba(255,196,61,0.18);
+  --red:#ff5252;--red-d:rgba(255,82,82,0.08);--red-b:rgba(255,82,82,0.18);
+  --blue:#5ab4ff;--purple:#b18bff;--purple-d:rgba(177,139,255,0.1);
+  --r:8px;--r2:14px;
+}
+html.light {
+  --bg:#f4f4f0;--bg2:#eaeae6;--bg3:#e0e0dc;--bg4:#d4d4d0;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.14);
+  --text:#111;--text2:#666;--text3:#bbb;
+  --green:#3d8c00;--green-d:rgba(61,140,0,0.07);--green-b:rgba(61,140,0,0.14);
+  --amber:#b07500;--amber-d:rgba(176,117,0,0.07);--amber-b:rgba(176,117,0,0.18);
+  --red:#cc2222;--red-d:rgba(204,34,34,0.07);--red-b:rgba(204,34,34,0.14);
+  --blue:#1a6fc0;--purple:#6b38c8;--purple-d:rgba(107,56,200,0.07);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;font-size:14px;line-height:1.6}
+::selection{background:var(--green);color:#000}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.wrap{max-width:860px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+.wrap-wide{max-width:1100px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+/* HEADER */
+.site-header{padding:28px 0 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:baseline;gap:3px;font-family:'Syne',sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:-1px}
+.logo-main{color:var(--text)}.logo-dot{color:var(--green)}.logo-ai{color:var(--text2);font-weight:600}
+.logo-tag{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);letter-spacing:3px;text-transform:uppercase;display:block;margin-top:-2px}
+.header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.live-dot{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-a 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse-a{0%,100%{box-shadow:0 0 0 0 rgba(184,255,90,0.5)}50%{box-shadow:0 0 0 6px rgba(184,255,90,0)}}
+.theme-btn{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 10px;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:1px;color:var(--text2);transition:all .2s;user-select:none}
+.theme-btn:hover{border-color:var(--border2);color:var(--text)}
+.t-pip{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* Sub status chip in header */
+.sub-chip{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:1px;padding:5px 13px;border-radius:20px;cursor:pointer;transition:all .2s;border:1px solid}
+.sub-chip.locked{background:var(--amber-d);border-color:var(--amber-b);color:var(--amber)}
+.sub-chip.locked:hover{background:var(--amber-b)}
+.sub-chip.unlocked{background:var(--green-d);border-color:var(--green-b);color:var(--green)}
+.sub-icon{font-size:0.75rem}
+
+/* DATE STRIP */
+.date-strip{display:flex;align-items:center;justify-content:space-between;padding:16px 0;gap:14px;flex-wrap:wrap}
+.date-tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none}
+.date-tabs::-webkit-scrollbar{display:none}
+.date-tab{background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:1px;padding:7px 14px;cursor:pointer;transition:all .2s;white-space:nowrap;text-transform:uppercase}
+.date-tab:hover{border-color:var(--border2);color:var(--text)}
+.date-tab.active{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
+.refresh-btn{background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.62rem;padding:7px 12px;cursor:pointer;transition:all .2s;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.refresh-btn:hover{border-color:var(--green);color:var(--green)}
+.refresh-btn.spinning svg{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px}
+.stat-chip{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:120px}
+.stat-val{font-family:'Syne',sans-serif;font-weight:700;font-size:1.4rem;line-height:1}
+.stat-val.green{color:var(--green)}.stat-val.amber{color:var(--amber)}.stat-val.red{color:var(--red)}.stat-val.blue{color:var(--blue)}
+.stat-label{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px}
+
+/* SECTION HEADERS */
+.sec-header{display:flex;align-items:center;gap:12px;margin:28px 0 14px}
+.sec-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;letter-spacing:-0.3px}
+.sec-count{font-family:'JetBrains Mono',monospace;font-size:0.65rem;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:2px 10px;color:var(--text3)}
+.sec-line{flex:1;height:1px;background:var(--border)}
+
+/* TIP CARDS */
+.tips-list{display:flex;flex-direction:column;gap:10px}
+.tip-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;transition:border-color .2s,transform .15s;position:relative}
+.tip-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.tip-card.win  {border-left:3px solid var(--green)}
+.tip-card.loss {border-left:3px solid var(--red)}
+.tip-card.live-now{border-left:3px solid var(--amber);box-shadow:0 0 0 1px rgba(255,196,61,0.1)}
+.tip-card.upcoming{border-left:3px solid var(--border2)}
+
+/* TIP HEADER */
+.tip-kick{background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kick-time{font-family:'Syne',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:1px;color:var(--amber);display:flex;align-items:center;gap:8px}
+.kick-status{font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:1px;padding:3px 10px;border-radius:20px}
+.ks-live  {background:var(--amber-d);border:1px solid rgba(255,196,61,.25);color:var(--amber);animation:pulse-text 1.5s ease-in-out infinite}
+.ks-ended {background:var(--bg4);border:1px solid var(--border);color:var(--text3)}
+.ks-soon  {background:var(--green-d);border:1px solid var(--green-b);color:var(--green)}
+.ks-later {background:none;border:1px solid var(--border);color:var(--text3)}
+@keyframes pulse-text{0%,100%{opacity:1}50%{opacity:.5}}
+.league-badge{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:5px}
+.league-badge::before{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--text3)}
+
+/* TIP BODY */
+.tip-body{padding:14px 18px 12px}
+.tip-matchup{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.team-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-0.3px;flex:1}
+.team-name.home{color:var(--text)}.team-name.away{color:var(--text2);text-align:right}
+.vs-sep{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text3);letter-spacing:3px;flex-shrink:0}
+
+/* Score display */
+.score-display{font-family:'Syne',sans-serif;font-weight:900;font-size:1.5rem;letter-spacing:2px;text-align:center;padding:4px 16px;border-radius:var(--r);flex-shrink:0}
+.score-display.win-score{color:var(--green);background:var(--green-d);border:1px solid var(--green-b)}
+.score-display.loss-score{color:var(--red);background:var(--red-d);border:1px solid var(--red-b)}
+.score-display.pending-score{color:var(--amber);background:var(--amber-d);border:1px solid var(--amber-b)}
+
+/* Tip selection row */
+.tip-selection{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tip-market-label{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px}
+.tip-pick{display:inline-flex;align-items:center;gap:7px;background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:7px 13px;font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:600;color:var(--green);letter-spacing:1px}
+.tip-pick.no-tip{background:var(--bg4);border-color:var(--border);color:var(--text3);font-weight:400}
+
+/* ══════════════════════════════════
+   PAYWALL LOCK STYLES
+══════════════════════════════════ */
+.tip-locked-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.tip-locked-box{position:relative;flex:1;min-width:160px}
+.tip-locked-blur{filter:blur(8px);user-select:none;pointer-events:none;background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:7px 13px;font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:600;color:var(--green);letter-spacing:1px;display:inline-flex;align-items:center;gap:7px}
+.tip-lock-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:var(--r)}
+.lock-badge{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.lock-badge svg{opacity:.5}
+
+.tip-unlock-btn{display:flex;align-items:center;gap:8px;background:var(--amber);color:#000;border:none;border-radius:var(--r);padding:8px 16px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;font-weight:600;letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap;text-transform:uppercase;flex-shrink:0}
+.tip-unlock-btn:hover{background:#ffd166;transform:scale(1.02)}
+.tip-unlock-btn:active{transform:scale(0.98)}
+
+/* Pro banner across top of locked card (subtle) */
+.pro-banner{background:linear-gradient(90deg,rgba(255,196,61,0.07) 0%,rgba(255,196,61,0.03) 100%);border-bottom:1px solid rgba(255,196,61,.1);padding:6px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pro-banner-text{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;opacity:.8}
+.pro-banner-price{font-family:'Syne',sans-serif;font-weight:700;font-size:0.72rem;color:var(--amber)}
+
+/* Result badges */
+.result-badge{display:inline-flex;align-items:center;gap:5px;border-radius:var(--r);padding:5px 12px;font-family:'JetBrains Mono',monospace;font-size:0.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.rb-win {background:var(--green-d);border:1px solid var(--green-b);color:var(--green)}
+.rb-loss{background:var(--red-d);border:1px solid rgba(255,82,82,.25);color:var(--red)}
+.rb-pend{background:var(--amber-d);border:1px solid rgba(255,196,61,.2);color:var(--amber)}
+.rb-live{background:var(--amber-d);border:1px solid rgba(255,196,61,.3);color:var(--amber);animation:pulse-text 1.5s ease-in-out infinite}
+
+/* Results section */
+.results-scoreboard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:10px}
+.rsb-header{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.rsb-body{padding:12px 18px}
+.rsb-score-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.rsb-teams{flex:1}
+.rsb-home{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:2px}
+.rsb-away{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;color:var(--text2)}
+.rsb-score-block{text-align:center;flex-shrink:0;background:var(--bg4);border-radius:var(--r);padding:8px 20px;border:1px solid var(--border)}
+.rsb-score-num{font-family:'Syne',sans-serif;font-weight:900;font-size:2rem;letter-spacing:4px;line-height:1}
+.rsb-score-num.won{color:var(--green)}.rsb-score-num.lost{color:var(--red)}.rsb-score-num.pending{color:var(--amber)}
+.rsb-score-label{font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:3px;text-align:center}
+.rsb-tip-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+.rsb-tip-label{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px}
+.rsb-verdict{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:var(--r);font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:600;letter-spacing:1px}
+.rsb-verdict.win{background:var(--green-d);border:1px solid var(--green-b);color:var(--green)}
+.rsb-verdict.loss{background:var(--red-d);border:1px solid var(--red-b);color:var(--red)}
+.rsb-verdict.pending{background:var(--amber-d);border:1px solid var(--amber-b);color:var(--amber)}
+
+/* Daily record */
+.daily-record{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.dr-label{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;flex-shrink:0}
+.dr-stats{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dr-stat{font-family:'Syne',sans-serif;font-weight:700;font-size:1.4rem;line-height:1}
+.dr-stat-label{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:1px}
+.dr-sep{color:var(--text3);font-size:1.2rem}
+.dr-rate{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;padding:4px 12px;border-radius:20px}
+.dr-rate.high{background:var(--green-d);border:1px solid var(--green-b);color:var(--green)}
+.dr-rate.mid{background:var(--amber-d);border:1px solid var(--amber-b);color:var(--amber)}
+.dr-rate.low{background:var(--red-d);border:1px solid var(--red-b);color:var(--red)}
+.dr-bar-wrap{flex:1;min-width:120px}
+.dr-bar{height:6px;border-radius:3px;background:var(--bg4);overflow:hidden;display:flex}
+.dr-seg-win{background:var(--green);border-radius:3px 0 0 3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.dr-seg-loss{background:var(--red);border-radius:0 3px 3px 0;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.pending-note{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);margin-top:5px}
+
+/* Prob bar */
+.prob-section{margin-top:8px}
+.prob-labels{display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);margin-bottom:4px}
+.prob-bar{height:4px;border-radius:3px;background:var(--bg4);display:flex;overflow:hidden}
+.prob-seg{height:100%;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.p-home{background:var(--green)}.p-draw{background:var(--amber)}.p-away{background:var(--red)}
+
+/* Conf pips */
+.conf-row{display:flex;align-items:center;gap:8px;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3)}
+.conf-pips{display:flex;gap:3px}
+.conf-pip{width:12px;height:3px;border-radius:2px;background:var(--bg4)}
+.conf-pip.h{background:var(--green)}.conf-pip.m{background:var(--amber)}.conf-pip.l{background:var(--red)}
+
+/* AI panel */
+.ai-panel{margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.ai-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;cursor:pointer;user-select:none}
+.ai-panel-title{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px}
+.ai-panel-title::before{content:'🤖';font-size:0.72rem}
+.ai-toggle{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);letter-spacing:1px;transition:transform .2s}
+.ai-toggle.open{transform:rotate(180deg)}
+.ai-body{padding:0 12px;font-size:0.76rem;color:var(--text2);line-height:1.75;display:none;white-space:pre-wrap;word-break:break-word;max-height:300px;overflow-y:auto}
+.ai-body.open{display:block;padding-bottom:12px}
+
+/* EMPTY + LOADING */
+.state-box{text-align:center;padding:56px 24px;border:1px dashed var(--border2);border-radius:var(--r2)}
+.state-icon{font-size:2.2rem;display:block;margin-bottom:10px;opacity:.4}
+.state-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.95rem;color:var(--text2);margin-bottom:5px}
+.state-sub{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text3);letter-spacing:.5px}
+.loading-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:48px 0;font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text3);letter-spacing:1px}
+.spinner{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+.results-pending-box{background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--r2);padding:24px;text-align:center}
+.rpb-icon{font-size:1.8rem;display:block;margin-bottom:8px;opacity:.4}
+.rpb-title{font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;color:var(--text2);margin-bottom:4px}
+.rpb-sub{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text3);letter-spacing:.5px}
+
+/* DISCLAIMER */
+.disclaimer{background:var(--amber-d);border:1px solid rgba(255,196,61,.15);border-radius:var(--r);padding:9px 15px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;font-size:0.63rem;color:var(--amber);letter-spacing:.5px;line-height:1.7;display:flex;align-items:flex-start;gap:9px}
+
+/* FOOTER */
+.site-footer{border-top:1px solid var(--border);padding:24px 0;margin-top:48px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-note{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);letter-spacing:.5px;line-height:1.8}
+.footer-brand{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--text3)}
+.footer-brand em{color:var(--green);font-style:normal}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:9px 16px;border-radius:var(--r);opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;z-index:999}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ══════════════════════════════════════════
+   PAYMENT MODAL
+══════════════════════════════════════════ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;width:100%;max-width:420px;overflow:hidden;transform:translateY(20px) scale(0.97);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.open .modal-box{transform:translateY(0) scale(1)}
+
+.modal-header{padding:24px 24px 0;position:relative}
+.modal-close{position:absolute;top:18px;right:18px;background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;color:var(--text2);transition:all .2s}
+.modal-close:hover{border-color:var(--border2);color:var(--text)}
+.modal-eyebrow{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.modal-eyebrow::before{content:'';display:inline-block;width:16px;height:2px;background:var(--amber);border-radius:2px}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;letter-spacing:-0.5px;line-height:1.2;margin-bottom:6px}
+.modal-subtitle{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text2);letter-spacing:.5px;line-height:1.7}
+
+/* Price pill */
+.price-pill{display:flex;align-items:center;gap:16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:16px 20px;margin:20px 24px}
+.price-amount{font-family:'Syne',sans-serif;font-weight:900;font-size:2rem;line-height:1;color:var(--green)}
+.price-amount sup{font-size:0.9rem;font-weight:600;vertical-align:super;margin-right:1px}
+.price-period{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-top:3px}
+.price-features{flex:1;font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text2);letter-spacing:.3px;line-height:1.9}
+.price-features li{list-style:none;display:flex;align-items:center;gap:6px}
+.price-features li::before{content:'✓';color:var(--green);font-weight:700}
+
+.modal-body{padding:0 24px 24px}
+
+/* Tabs */
+.modal-tabs{display:flex;gap:4px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:4px;margin-bottom:20px}
+.modal-tab{flex:1;padding:7px;font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:1px;text-transform:uppercase;border-radius:6px;cursor:pointer;border:none;background:none;color:var(--text2);transition:all .2s;text-align:center}
+.modal-tab.active{background:var(--bg);color:var(--text);border:1px solid var(--border2)}
+
+.modal-panel{display:none}.modal-panel.active{display:block}
+
+/* Form inputs */
+.form-group{margin-bottom:14px}
+.form-label{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:6px}
+.form-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:11px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.82rem;letter-spacing:1px;transition:border-color .2s;outline:none}
+.form-input:focus{border-color:var(--amber)}
+.form-input::placeholder{color:var(--text3)}
+.form-hint{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--text3);margin-top:5px;letter-spacing:.3px}
+
+/* Pay button */
+.pay-btn{width:100%;background:var(--amber);color:#000;border:none;border-radius:var(--r);padding:13px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;letter-spacing:.5px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px}
+.pay-btn:hover:not(:disabled){background:#ffd166;transform:translateY(-1px)}
+.pay-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.pay-btn .btn-spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,0.2);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.pay-btn.loading .btn-spinner{display:block}
+.pay-btn.loading .btn-text{opacity:.6}
+
+/* Status messages */
+.pay-status{margin-top:12px;border-radius:var(--r);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.5px;line-height:1.7;display:none}
+.pay-status.info   {background:var(--amber-d);border:1px solid var(--amber-b);color:var(--amber);display:block}
+.pay-status.success{background:var(--green-d);border:1px solid var(--green-b);color:var(--green);display:block}
+.pay-status.error  {background:var(--red-d);border:1px solid var(--red-b);color:var(--red);display:block}
+
+/* Steps indicator */
+.pay-steps{display:flex;align-items:center;gap:0;margin-bottom:20px}
+.pay-step{flex:1;text-align:center}
+.pay-step-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 5px;font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);transition:all .3s}
+.pay-step.active .pay-step-dot{border-color:var(--amber);color:var(--amber);background:var(--amber-d)}
+.pay-step.done .pay-step-dot{border-color:var(--green);background:var(--green);color:#000}
+.pay-step-label{font-family:'JetBrains Mono',monospace;font-size:0.52rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;transition:color .3s}
+.pay-step.active .pay-step-label{color:var(--amber)}
+.pay-step.done .pay-step-label{color:var(--green)}
+.pay-step-line{flex:0 0 30px;height:1px;background:var(--border2);margin-bottom:16px;transition:background .3s}
+.pay-step.done + .pay-step-line{background:var(--green)}
+
+/* Subscriber check panel */
+.sub-check-note{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text3);letter-spacing:.3px;line-height:1.8;margin-bottom:16px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r)}
+
+@media(max-width:600px){
+  .site-header{padding:18px 0 14px}.logo{font-size:1.4rem}
+  .team-name{font-size:.95rem}.stats-bar{gap:6px}
+  .stat-chip{min-width:100px;padding:8px 12px}.stat-val{font-size:1.15rem}
+  .rsb-score-num{font-size:1.5rem}
+  .modal-box{max-width:100%;margin:0;border-radius:20px 20px 0 0;position:fixed;bottom:0}
+  .modal-overlay{align-items:flex-end}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<div class="wrap-wide">
+  <header class="site-header">
+    <div>
+      <div class="logo">
+        <span class="logo-main">FOOTY</span>
+        <span class="logo-dot">.</span>
+        <span class="logo-ai">AI</span>
+      </div>
+      <span class="logo-tag">Free Daily Predictions</span>
+    </div>
+    <div class="header-right">
+      <div class="live-dot">
+        <div class="pulse"></div>
+        <span id="liveStatus">Loading…</span>
+      </div>
+      <button class="sub-chip locked" id="subChip" onclick="openModal()">
+        <span class="sub-icon">🔒</span>
+        <span id="subChipLabel">Unlock Tips · KES 49</span>
+      </button>
+      <button class="theme-btn" onclick="toggleTheme()">
+        <div class="t-pip"></div>
+        <span id="themeLabel">Light Mode</span>
+      </button>
+    </div>
+  </header>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="wrap">
+  <div class="date-strip">
+    <div class="date-tabs" id="dateTabs"></div>
+    <button class="refresh-btn" onclick="manualRefresh()" id="refreshBtn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <div class="disclaimer">
+    <span style="font-size:1rem;flex-shrink:0;margin-top:1px">⚠</span>
+    <span>AI-generated tips for a <strong>virtual football simulation</strong> — not real matches. For entertainment only.</span>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-chip"><div><div class="stat-val green" id="statTotal">—</div><div class="stat-label">Tips Today</div></div></div>
+    <div class="stat-chip"><div><div class="stat-val amber" id="statLive">—</div><div class="stat-label">Live / Soon</div></div></div>
+    <div class="stat-chip"><div><div class="stat-val green" id="statWins">—</div><div class="stat-label">Wins</div></div></div>
+    <div class="stat-chip"><div><div class="stat-val red" id="statLosses">—</div><div class="stat-label">Losses</div></div></div>
+    <div class="stat-chip"><div><div class="stat-val" id="statUpdated" style="font-size:0.85rem;color:var(--text2)">—</div><div class="stat-label">Updated</div></div></div>
+  </div>
+
+  <div class="sec-header" id="upcomingHeader" style="display:none">
+    <div class="sec-title">⚡ Live &amp; Upcoming</div>
+    <span class="sec-count" id="upcomingCount">0</span>
+    <div class="sec-line"></div>
+  </div>
+  <div class="tips-list" id="upcomingList"></div>
+
+  <div class="sec-header" id="resultsHeader" style="display:none">
+    <div class="sec-title">✓ Results</div>
+    <span class="sec-count" id="resultsCount">0</span>
+    <div class="sec-line"></div>
+  </div>
+  <div id="resultsSummary"></div>
+  <div class="tips-list" id="resultsList"></div>
+
+  <div id="emptyState" style="display:none">
+    <div class="state-box">
+      <span class="state-icon">📭</span>
+      <div class="state-title">No tips posted yet</div>
+      <div class="state-sub">Check back soon — tips are posted before kick-off</div>
+    </div>
+  </div>
+  <div id="loadingState">
+    <div class="loading-row"><div class="spinner"></div>Fetching today's tips…</div>
+  </div>
+</div>
+
+<div class="wrap-wide">
+  <footer class="site-footer">
+    <div class="footer-note">
+      Tips auto-refresh every 60 seconds · Results updated by admin after matches<br>
+      Virtual simulation only — for entertainment purposes
+    </div>
+    <div class="footer-brand">FOOTY<em>.</em>AI</div>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════
+     PAYMENT MODAL
+══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="onOverlayClick(event)">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-eyebrow">Pro Access</div>
+      <div class="modal-title">Unlock Today's Tips</div>
+      <div class="modal-subtitle">Get all AI picks for today · Access resets at midnight</div>
+    </div>
+
+    <!-- Price pill -->
+    <div class="price-pill">
+      <div>
+        <div class="price-amount"><sup>KES</sup>49</div>
+        <div class="price-period">Per day</div>
+      </div>
+      <ul class="price-features">
+        <li>All AI tips revealed</li>
+        <li>Live & upcoming matches</li>
+        <li>Full match analysis</li>
+        <li>Instant M-Pesa STK push</li>
+      </ul>
+    </div>
+
+    <div class="modal-body">
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tabPay" onclick="switchTab('pay')">Pay KES 49</button>
+        <button class="modal-tab" id="tabCheck" onclick="switchTab('check')">Already Subscribed?</button>
+      </div>
+
+      <!-- PAY PANEL -->
+      <div class="modal-panel active" id="panelPay">
+        <!-- Steps -->
+        <div class="pay-steps">
+          <div class="pay-step active" id="step1">
+            <div class="pay-step-dot">1</div>
+            <div class="pay-step-label">Enter Phone</div>
+          </div>
+          <div class="pay-step-line"></div>
+          <div class="pay-step" id="step2">
+            <div class="pay-step-dot">2</div>
+            <div class="pay-step-label">M-Pesa Prompt</div>
+          </div>
+          <div class="pay-step-line"></div>
+          <div class="pay-step" id="step3">
+            <div class="pay-step-dot">3</div>
+            <div class="pay-step-label">Unlocked</div>
+          </div>
+        </div>
+
+        <div id="payPhaseEnter">
+          <div class="form-group">
+            <label class="form-label" for="payPhone">Your M-Pesa Number</label>
+            <input class="form-input" type="tel" id="payPhone" placeholder="07XX XXX XXX" maxlength="12" autocomplete="tel">
+            <div class="form-hint">Safaricom number registered to M-Pesa · You'll get an STK push prompt</div>
+          </div>
+          <button class="pay-btn" id="payBtn" onclick="initiatePayment()">
+            <div class="btn-spinner"></div>
+            <span class="btn-text">Send M-Pesa Request · KES 49</span>
+          </button>
+          <div class="pay-status" id="payStatus1"></div>
+        </div>
+
+        <div id="payPhaseWait" style="display:none">
+          <div class="pay-status info" style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px">
+            <div style="margin-top:1px"><div class="spinner" style="width:14px;height:14px;flex-shrink:0"></div></div>
+            <div>
+              <strong>Check your phone</strong><br>
+              Enter your M-Pesa PIN on the pop-up to complete payment.<br>
+              <span style="opacity:.7">Waiting for confirmation…</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="waitPhone">Phone number</label>
+            <input class="form-input" type="tel" id="waitPhone" readonly style="opacity:.5;cursor:not-allowed">
+          </div>
+          <button class="pay-btn" style="background:var(--bg4);color:var(--text2);cursor:default" disabled>
+            <div class="btn-spinner" style="display:block;border-top-color:var(--text2);border-color:var(--border2)"></div>
+            <span class="btn-text">Waiting for payment…</span>
+          </button>
+          <div style="margin-top:12px;text-align:center">
+            <button onclick="cancelWait()" style="background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);cursor:pointer;letter-spacing:1px;text-decoration:underline">Cancel / Try again</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHECK PANEL -->
+      <div class="modal-panel" id="panelCheck">
+        <div class="sub-check-note">
+          Already paid today? Enter your M-Pesa number below to restore access on this device.
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="checkPhone">Your M-Pesa Number</label>
+          <input class="form-input" type="tel" id="checkPhone" placeholder="07XX XXX XXX" maxlength="12" autocomplete="tel">
+          <div class="form-hint">Must match the number you paid with</div>
+        </div>
+        <button class="pay-btn" id="checkBtn" onclick="checkSubscription()">
+          <div class="btn-spinner"></div>
+          <span class="btn-text">Check My Access</span>
+        </button>
+        <div class="pay-status" id="checkStatus"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+const SERVER_URL      = 'https://voter-server-fmfr.onrender.com';
+const AUTO_REFRESH_MS = 60_000;
+const TICK_MS         = 1_000;
+const MATCH_DURATION  = 90 * 60;
+const PRO_PRICE       = 49;
+
+let currentDate   = todayStr();
+let allTips       = [];
+let autoTimer     = null;
+let tickTimer     = null;
+let pollTimer     = null;
+let currentTxRef  = null;
+let isUnlocked    = false;  // session-level unlock flag
+
+/* ═══════════════════════════════════════
+   SESSION UNLOCK (stored in sessionStorage)
+═══════════════════════════════════════ */
+function getUnlockKey() { return `footy_unlocked_${todayStr()}`; }
+function getUnlockedPhone() { return sessionStorage.getItem(getUnlockKey()) || null; }
+function setUnlocked(phone) {
+  sessionStorage.setItem(getUnlockKey(), phone);
+  isUnlocked = true;
+  updateSubChip(phone);
+  renderAll();
+}
+function checkSessionUnlock() {
+  const p = getUnlockedPhone();
+  if (p) { isUnlocked = true; updateSubChip(p); }
+}
+function updateSubChip(phone) {
+  const chip  = document.getElementById('subChip');
+  const label = document.getElementById('subChipLabel');
+  chip.classList.remove('locked');
+  chip.classList.add('unlocked');
+  chip.onclick = null; // disable click
+  label.textContent = `✓ Unlocked · ${maskPhone(phone)}`;
+}
+function maskPhone(p) {
+  const d = p.replace(/\D/g,'');
+  if (d.length < 9) return p;
+  return d.slice(0,4) + '····' + d.slice(-3);
+}
+
+/* ═══════════════════════════════════════
+   DATE HELPERS
+═══════════════════════════════════════ */
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function dateLabel(ds) {
+  const d   = new Date(ds + 'T12:00:00');
+  const td  = todayStr();
+  const yd  = new Date(); yd.setDate(yd.getDate() - 1);
+  const yds = yd.toISOString().split('T')[0];
+  if (ds === td)  return 'Today';
+  if (ds === yds) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+}
+function buildDateTabs() {
+  const tabs  = document.getElementById('dateTabs');
+  const dates = [];
+  for (let i = 3; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  const tom = new Date(); tom.setDate(tom.getDate() + 1);
+  dates.push(tom.toISOString().split('T')[0]);
+  tabs.innerHTML = dates.map(d =>
+    `<button class="date-tab ${d === currentDate ? 'active' : ''}" onclick="selectDate('${d}',this)">${dateLabel(d)}</button>`
+  ).join('');
+}
+function selectDate(date, el) {
+  currentDate = date;
+  document.querySelectorAll('.date-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadTips(date);
+}
+
+/* ═══════════════════════════════════════
+   KICKOFF / PHASE HELPERS
+═══════════════════════════════════════ */
+function koToSeconds(kickoff) {
+  if (!kickoff) return null;
+  const clean = String(kickoff).replace(/[^0-9:]/g,'');
+  const parts = clean.split(':').map(Number);
+  if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return parts[0] * 3600 + parts[1] * 60;
+}
+function nowSeconds() { const n = new Date(); return n.getHours()*3600 + n.getMinutes()*60 + n.getSeconds(); }
+function matchPhase(kickoff) {
+  const koSec = koToSeconds(kickoff);
+  if (koSec === null) return 'upcoming';
+  const now = nowSeconds();
+  if (now < koSec - 30) return 'upcoming';
+  if (now < koSec + MATCH_DURATION) return 'live';
+  return 'ended';
+}
+function countdownText(kickoff) {
+  const koSec = koToSeconds(kickoff);
+  if (koSec === null) return { text:'—', cls:'ks-later' };
+  const now  = nowSeconds();
+  const diff = koSec - now;
+  if (diff > 0 && diff <= 30) return { text:'Kick-off soon!', cls:'ks-soon' };
+  if (diff > 0) {
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    const txt = h > 0 ? `in ${h}h ${m}m` : m > 0 ? `in ${m}m ${s}s` : `in ${s}s`;
+    return { text: txt, cls: diff < 300 ? 'ks-soon' : 'ks-later' };
+  }
+  const elapsed = -diff;
+  if (elapsed < MATCH_DURATION) { const min = Math.floor(elapsed / 60); return { text:`🟢 ${min}'`, cls:'ks-live' }; }
+  return { text:'Ended', cls:'ks-ended' };
+}
+
+/* ═══════════════════════════════════════
+   TIP NORMALISER
+═══════════════════════════════════════ */
+function extractTip(raw) {
+  const aiText = raw.aiText || raw.ai_text || raw.analysis || '';
+  let tip = raw.tip || raw.selection || raw.pick || raw.market || raw.prediction || raw.bet || raw.tipText || '';
+  if (!tip && aiText) {
+    const betRE = /\b(home win|away win|draw|btts|gg|ng|over\s*[\d.]+|under\s*[\d.]+|1x|x2|12|clean sheet|double chance)\b/i;
+    for (const line of aiText.split('\n')) {
+      const s = line.replace(/[*_>#`]/g,'').trim();
+      if (s.length < 3 || s.length > 80) continue;
+      if (betRE.test(s) && s.split(' ').length <= 8) { tip = s; break; }
+    }
+  }
+  return tip;
+}
+function extractKickoff(raw) {
+  let ko = raw.kickoff || raw.kickOff || raw.kick_off || raw.matchTime || raw.kickoffTime || raw.time || raw.startTime || '';
+  if (!ko) { const m = (raw.aiText||'').match(/(?:kick[\s-]?off|ko|starts?(?:\s+at)?)[:\s–]+(\d{1,2}[:.]\d{2})/i); if (m) ko = m[1].replace('.',':'); }
+  return ko;
+}
+function extractConf(raw) {
+  let c = parseInt(raw.confidence || raw.conf || raw.confidenceScore || 0) || 0;
+  if (!c && raw.aiText) { const m = raw.aiText.match(/confidence[:\s–]+(\d{1,3})\s*(?:%|\/\s*100)?/i); if (m) c = Math.min(100, parseInt(m[1])); }
+  return c;
+}
+function extractScore(raw) {
+  const candidates = [raw.score, raw.actualScore, raw.scoreStr, raw.liveScore, raw.finalScore];
+  for (const c of candidates) {
+    if (!c) continue;
+    if (typeof c === 'object' && c.home !== undefined && c.away !== undefined) return `${c.home} - ${c.away}`;
+    if (typeof c === 'string' && /\d+\s*[-–:]\s*\d+/.test(c)) return c.replace(/\s*[-–:]\s*/,' - ');
+  }
+  return null;
+}
+function normaliseTip(raw) {
+  const tip      = extractTip(raw);
+  const kickoff  = extractKickoff(raw);
+  const conf     = extractConf(raw);
+  const probs    = raw.probabilities || raw.probs || {};
+  const homeTeam = raw.homeTeam || raw.home_team || raw.home || '';
+  const awayTeam = raw.awayTeam || raw.away_team || raw.away || '';
+  const matchLabel = raw.matchLabel || raw.match || (homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : '');
+  const rawResult  = (raw.result || raw.outcome || '').toLowerCase();
+  let result = null;
+  if (rawResult === 'win'  || rawResult === 'right') result = 'win';
+  if (rawResult === 'loss' || rawResult === 'wrong') result = 'loss';
+  const score = extractScore(raw);
+  return { ...raw, homeTeam, awayTeam, matchLabel, league: raw.league || '', aiText: raw.aiText || '', tip, kickoff, conf, probs, result, score, id: raw.id || String(Date.now()+Math.random()) };
+}
+
+/* ═══════════════════════════════════════
+   PHONE NORMALISER
+═══════════════════════════════════════ */
+function normalisePhone(phone) {
+  let p = phone.toString().replace(/\D/g,'');
+  if (p.startsWith('0')) p = '254' + p.slice(1);
+  if (p.startsWith('7') || p.startsWith('1')) p = '254' + p;
+  if (!p.startsWith('254')) p = '254' + p;
+  return p;
+}
+
+/* ═══════════════════════════════════════
+   FETCH TIPS
+═══════════════════════════════════════ */
+async function loadTips(date) {
+  showLoading(true);
+  try {
+    const res  = await fetch(`${SERVER_URL}/api/tips/public?date=${date}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Server error');
+    allTips = (data.tips || []).map(normaliseTip).sort((a,b) => (a.kickoff||'99:99').localeCompare(b.kickoff||'99:99'));
+    document.getElementById('statUpdated').textContent = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    renderAll();
+  } catch (err) {
+    showLoading(false);
+    showError(err.message);
+    document.getElementById('liveStatus').textContent = 'Connection error';
+  }
+}
+
+/* ═══════════════════════════════════════
+   RENDER ALL
+═══════════════════════════════════════ */
+function renderAll() {
+  showLoading(false);
+  if (!allTips.length) { showEmpty(true); updateStats([]); return; }
+  showEmpty(false);
+
+  const trueUpcoming = allTips.filter(t => matchPhase(t.kickoff) !== 'ended' && t.result === null);
+  const ended        = allTips.filter(t => matchPhase(t.kickoff) === 'ended' || t.result !== null);
+
+  const upList = document.getElementById('upcomingList');
+  const upHdr  = document.getElementById('upcomingHeader');
+  if (trueUpcoming.length) {
+    upHdr.style.display = 'flex';
+    document.getElementById('upcomingCount').textContent = trueUpcoming.length;
+    upList.innerHTML = trueUpcoming.map((t,i) => tipCardHtml(t, i)).join('');
+  } else {
+    upHdr.style.display = 'none';
+    upList.innerHTML = '';
+  }
+
+  const resList = document.getElementById('resultsList');
+  const resHdr  = document.getElementById('resultsHeader');
+  const resSumm = document.getElementById('resultsSummary');
+  if (ended.length) {
+    resHdr.style.display = 'flex';
+    document.getElementById('resultsCount').textContent = ended.length;
+    resSumm.innerHTML = buildResultsSummary(ended);
+    resList.innerHTML = ended.map((t,i) => resultCardHtml(t,i)).join('');
+  } else {
+    resHdr.style.display = 'none';
+    resSumm.innerHTML = '';
+    resList.innerHTML = '';
+  }
+
+  updateStats(allTips);
+  document.getElementById('liveStatus').textContent = `${allTips.length} tip${allTips.length!==1?'s':''} · ${dateLabel(currentDate)}`;
+}
+
+/* ═══════════════════════════════════════
+   UPCOMING TIP CARD (with paywall)
+═══════════════════════════════════════ */
+function tipCardHtml(tip, idx) {
+  const phase = matchPhase(tip.kickoff);
+  const cd    = countdownText(tip.kickoff);
+  const cardCls = phase === 'live' ? 'live-now' : 'upcoming';
+  const resultBadge = phase === 'live' ? `<span class="result-badge rb-live">🟢 Live</span>` : '';
+
+  const hp = tip.probs?.home !== undefined ? Number(tip.probs.home) : null;
+  const dp = tip.probs?.draw !== undefined ? Number(tip.probs.draw) : null;
+  const ap = tip.probs?.away !== undefined ? Number(tip.probs.away) : null;
+  const probHtml = (hp!==null && dp!==null && ap!==null) ? `
+    <div class="prob-section">
+      <div class="prob-labels">
+        <span>${esc(tip.homeTeam||'Home')} <strong style="color:var(--green)">${hp}%</strong></span>
+        <span>Draw <strong style="color:var(--amber)">${dp}%</strong></span>
+        <span>${esc(tip.awayTeam||'Away')} <strong style="color:var(--red)">${ap}%</strong></span>
+      </div>
+      <div class="prob-bar">
+        <div class="prob-seg p-home" style="width:${hp}%"></div>
+        <div class="prob-seg p-draw" style="width:${dp}%"></div>
+        <div class="prob-seg p-away" style="width:${ap}%"></div>
+      </div>
+    </div>` : '';
+
+  const c = tip.conf;
+  const pipClass = c >= 70 ? 'h' : c >= 45 ? 'm' : 'l';
+  const pipCount = c >= 70 ? 5 : c >= 45 ? 3 : 1;
+  const confHtml = c ? `<div class="conf-row">
+    <div class="conf-pips">${Array.from({length:5},(_,i)=>`<div class="conf-pip ${i<pipCount?pipClass:''}"></div>`).join('')}</div>
+    <span>${c >= 70 ? 'High' : c >= 45 ? 'Medium' : 'Low'} confidence · ${c}/100</span>
+  </div>` : '';
+
+  const aiId   = `ai-up-${idx}`;
+  const aiHtml = tip.aiText && tip.aiText.trim().length > 10 ? `
+    <div class="ai-panel">
+      <div class="ai-panel-hd" onclick="toggleAi('${aiId}')">
+        <span class="ai-panel-title">AI Analysis</span>
+        <span class="ai-toggle" id="at-${aiId}">▼ show</span>
+      </div>
+      <div class="ai-body" id="ab-${aiId}">${esc(tip.aiText.trim())}</div>
+    </div>` : '';
+
+  /* ── TIP SELECTION: locked vs unlocked ── */
+  let selectionHtml;
+  if (isUnlocked && tip.tip) {
+    const icon = marketIcon(tip.tip);
+    selectionHtml = `
+      <div class="tip-selection">
+        <div>
+          <div class="tip-market-label">AI Tip</div>
+          <div class="tip-pick"><span>${icon}</span>${esc(tip.tip)}</div>
+        </div>
+        ${c ? `<div style="text-align:right">
+          <div class="tip-market-label">Confidence</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.15rem;color:${c>=70?'var(--green)':c>=45?'var(--amber)':'var(--red)'}">
+            ${c}<span style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;font-weight:400;color:var(--text3)">/100</span>
+          </div></div>` : ''}
+      </div>`;
+  } else {
+    /* Locked: show blurred dummy + unlock button */
+    selectionHtml = `
+      <div class="tip-locked-row">
+        <div class="tip-locked-box">
+          <div class="tip-market-label">AI Tip</div>
+          <div class="tip-locked-blur">⚽&nbsp;&nbsp;${randomDummyTip()}</div>
+          <div class="tip-lock-overlay">
+            <div class="lock-badge">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              LOCKED
+            </div>
+          </div>
+        </div>
+        <button class="tip-unlock-btn" onclick="openModal()">
+          🔓 Unlock · KES ${PRO_PRICE}
+        </button>
+      </div>`;
+  }
+
+  return `
+  <div class="tip-card ${cardCls}">
+    ${!isUnlocked ? `<div class="pro-banner">
+      <span class="pro-banner-text">🔒 AI Tip Hidden</span>
+      <span class="pro-banner-price">KES ${PRO_PRICE}/day to reveal</span>
+    </div>` : ''}
+    <div class="tip-kick">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div class="kick-time">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          ${tip.kickoff || '—:—'}
+        </div>
+        ${tip.league ? `<div class="league-badge">${esc(tip.league)}</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="kick-status ${cd.cls}" data-kickoff="${tip.kickoff}">${cd.text}</span>
+        ${resultBadge}
+      </div>
+    </div>
+    <div class="tip-body">
+      <div class="tip-matchup">
+        <div class="team-name home">${esc(tip.homeTeam||'Home')}</div>
+        <div class="vs-sep">VS</div>
+        <div class="team-name away">${esc(tip.awayTeam||'Away')}</div>
+      </div>
+      ${selectionHtml}
+      ${isUnlocked ? probHtml : ''}
+      ${isUnlocked ? confHtml : ''}
+      ${isUnlocked ? aiHtml : ''}
+    </div>
+  </div>`;
+}
+
+/* Random dummy tip text for the blurred overlay */
+const DUMMY_TIPS = ['Home Win', 'BTTS — Yes', 'Over 2.5', 'Away Win', 'Draw', 'Over 1.5', 'Both Teams Score'];
+function randomDummyTip() { return DUMMY_TIPS[Math.floor(Math.random() * DUMMY_TIPS.length)]; }
+
+/* ═══════════════════════════════════════
+   RESULT CARD (always visible after match)
+═══════════════════════════════════════ */
+function resultCardHtml(tip, idx) {
+  const hasResult = tip.result !== null;
+  const hasScore  = tip.score !== null && tip.score !== undefined;
+  let scoreNumClass = 'pending';
+  if (tip.result === 'win')  scoreNumClass = 'won';
+  if (tip.result === 'loss') scoreNumClass = 'lost';
+
+  let verdictHtml = '';
+  if (hasResult) {
+    verdictHtml = tip.result === 'win'
+      ? `<div class="rsb-verdict win">✓ &nbsp;WIN</div>`
+      : `<div class="rsb-verdict loss">✗ &nbsp;LOSS</div>`;
+  } else {
+    verdictHtml = `<div class="rsb-verdict pending">⏳ &nbsp;Awaiting result</div>`;
+  }
+
+  const scoreBlock = hasScore
+    ? `<div class="rsb-score-block"><div class="rsb-score-num ${scoreNumClass}">${esc(tip.score)}</div><div class="rsb-score-label">Final Score</div></div>`
+    : `<div class="rsb-score-block"><div class="rsb-score-num pending" style="font-size:0.9rem;letter-spacing:1px">—</div><div class="rsb-score-label">Score TBD</div></div>`;
+
+  const hp = tip.probs?.home !== undefined ? Number(tip.probs.home) : null;
+  const dp = tip.probs?.draw !== undefined ? Number(tip.probs.draw) : null;
+  const ap = tip.probs?.away !== undefined ? Number(tip.probs.away) : null;
+  const probHtml = (hp!==null && dp!==null && ap!==null) ? `
+    <div class="prob-section" style="margin-top:10px">
+      <div class="prob-labels">
+        <span>${esc(tip.homeTeam||'Home')} <strong style="color:var(--green)">${hp}%</strong></span>
+        <span>Draw <strong style="color:var(--amber)">${dp}%</strong></span>
+        <span>${esc(tip.awayTeam||'Away')} <strong style="color:var(--red)">${ap}%</strong></span>
+      </div>
+      <div class="prob-bar">
+        <div class="prob-seg p-home" style="width:${hp}%"></div>
+        <div class="prob-seg p-draw" style="width:${dp}%"></div>
+        <div class="prob-seg p-away" style="width:${ap}%"></div>
+      </div>
+    </div>` : '';
+
+  /* Tips in results are ALWAYS revealed (match already happened) */
+  const tipDisplay = tip.tip
+    ? `<div class="tip-pick"><span>${marketIcon(tip.tip)}</span>${esc(tip.tip)}</div>`
+    : `<div class="tip-pick no-tip">—</div>`;
+
+  const aiId   = `ai-res-${idx}`;
+  const aiHtml = tip.aiText && tip.aiText.trim().length > 10 ? `
+    <div class="ai-panel" style="margin-top:10px">
+      <div class="ai-panel-hd" onclick="toggleAi('${aiId}')">
+        <span class="ai-panel-title">AI Pre-Match Analysis</span>
+        <span class="ai-toggle" id="at-${aiId}">▼ show</span>
+      </div>
+      <div class="ai-body" id="ab-${aiId}">${esc(tip.aiText.trim())}</div>
+    </div>` : '';
+
+  return `
+  <div class="results-scoreboard">
+    <div class="rsb-header">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--amber);font-weight:600;letter-spacing:1px">⏰ ${tip.kickoff||'—:—'}</span>
+        ${tip.league ? `<span class="league-badge">${esc(tip.league)}</span>` : ''}
+        <span class="kick-status ks-ended">Ended</span>
+      </div>
+      ${hasResult
+        ? (tip.result==='win' ? `<span class="result-badge rb-win" style="font-size:.65rem">✓ Win</span>` : `<span class="result-badge rb-loss" style="font-size:.65rem">✗ Loss</span>`)
+        : `<span class="result-badge rb-pend" style="font-size:.65rem">⏳ Pending</span>`}
+    </div>
+    <div class="rsb-body">
+      <div class="rsb-score-row">
+        <div class="rsb-teams">
+          <div class="rsb-home">${esc(tip.homeTeam||'Home')}</div>
+          <div class="rsb-away">${esc(tip.awayTeam||'Away')}</div>
+        </div>
+        ${scoreBlock}
+      </div>
+      <div class="rsb-tip-row">
+        <div>
+          <div class="rsb-tip-label">AI Tip</div>
+          ${tipDisplay}
+        </div>
+        <div style="text-align:right">
+          <div class="rsb-tip-label">Verdict</div>
+          ${verdictHtml}
+        </div>
+      </div>
+      ${probHtml}
+      ${aiHtml}
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════
+   RESULTS SUMMARY
+═══════════════════════════════════════ */
+function buildResultsSummary(ended) {
+  const wins    = ended.filter(t => t.result === 'win').length;
+  const losses  = ended.filter(t => t.result === 'loss').length;
+  const pending = ended.filter(t => t.result === null).length;
+  const total   = wins + losses;
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : null;
+  const graded  = wins + losses;
+  if (!graded) return `<div class="results-pending-box"><span class="rpb-icon">⏳</span><div class="rpb-title">Results pending admin update</div><div class="rpb-sub">${ended.length} match${ended.length!==1?'es':''} ended — scores appear once admin grades them</div></div>`;
+  const rateClass = winRate === null ? '' : winRate >= 60 ? 'high' : winRate >= 40 ? 'mid' : 'low';
+  const winPct  = total > 0 ? (wins/total*100) : 0;
+  const lossPct = total > 0 ? (losses/total*100) : 0;
+  return `<div class="daily-record">
+    <div class="dr-label">Today's Record</div>
+    <div class="dr-stats">
+      <div style="text-align:center"><div class="dr-stat" style="color:var(--green)">${wins}</div><div class="dr-stat-label">Wins</div></div>
+      <div class="dr-sep">/</div>
+      <div style="text-align:center"><div class="dr-stat" style="color:var(--red)">${losses}</div><div class="dr-stat-label">Losses</div></div>
+      ${pending ? `<div class="dr-sep">/</div><div style="text-align:center"><div class="dr-stat" style="color:var(--amber)">${pending}</div><div class="dr-stat-label">Pending</div></div>` : ''}
+      ${winRate !== null ? `<div class="${rateClass} dr-rate">${winRate}% Hit Rate</div>` : ''}
+    </div>
+    <div class="dr-bar-wrap">
+      <div class="dr-bar"><div class="dr-seg-win" style="width:${winPct}%"></div><div class="dr-seg-loss" style="width:${lossPct}%"></div></div>
+      ${pending ? `<div class="pending-note">⏳ ${pending} pending admin grade</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════
+   STATS
+═══════════════════════════════════════ */
+function updateStats(tips) {
+  document.getElementById('statTotal').textContent = tips.length;
+  const live   = tips.filter(t => { const p = matchPhase(t.kickoff); return p==='live' || (p==='upcoming' && t.result===null); }).length;
+  const wins   = tips.filter(t => t.result==='win').length;
+  const losses = tips.filter(t => t.result==='loss').length;
+  document.getElementById('statLive').textContent   = live;
+  document.getElementById('statWins').textContent   = wins;
+  document.getElementById('statLosses').textContent = losses;
+}
+
+/* ═══════════════════════════════════════
+   LIVE TICK
+═══════════════════════════════════════ */
+function tick() {
+  document.querySelectorAll('[data-kickoff]').forEach(el => {
+    const ko = el.getAttribute('data-kickoff');
+    if (!ko) return;
+    const cd = countdownText(ko);
+    el.textContent = cd.text; el.className = 'kick-status ' + cd.cls;
+  });
+  const nowEnded = allTips.filter(t => matchPhase(t.kickoff)==='ended' || t.result!==null).length;
+  const shownRes = document.querySelectorAll('#resultsList .results-scoreboard').length;
+  if (nowEnded !== shownRes) renderAll();
+}
+
+/* ═══════════════════════════════════════
+   MODAL — OPEN / CLOSE / TABS
+═══════════════════════════════════════ */
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  resetPayFlow();
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function onOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+function switchTab(tab) {
+  document.getElementById('tabPay').classList.toggle('active',   tab==='pay');
+  document.getElementById('tabCheck').classList.toggle('active', tab==='check');
+  document.getElementById('panelPay').classList.toggle('active', tab==='pay');
+  document.getElementById('panelCheck').classList.toggle('active', tab==='check');
+}
+
+/* ═══════════════════════════════════════
+   PAYMENT FLOW
+═══════════════════════════════════════ */
+function resetPayFlow() {
+  clearPollTimer();
+  document.getElementById('payPhaseEnter').style.display = 'block';
+  document.getElementById('payPhaseWait').style.display  = 'none';
+  setStatus('payStatus1', '', '');
+  setStep(1);
+  const payBtn = document.getElementById('payBtn');
+  payBtn.disabled = false;
+  payBtn.classList.remove('loading');
+}
+
+async function initiatePayment() {
+  const raw  = document.getElementById('payPhone').value.trim();
+  if (!raw || raw.replace(/\D/g,'').length < 9) { setStatus('payStatus1','error','Enter a valid Safaricom number (e.g. 0712 345 678)'); return; }
+  const phone = normalisePhone(raw);
+  const btn   = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  setStatus('payStatus1','info','Sending STK push to '+maskPhone(phone)+'…');
+
+  try {
+    const res = await fetch(`${SERVER_URL}/api/payment/stk-push`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone, amount: PRO_PRICE, description:'FOOTY.AI Daily Tips Unlock' })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Payment initiation failed');
+
+    currentTxRef = data.checkoutRequestId || data.reference;
+    document.getElementById('waitPhone').value = raw;
+    document.getElementById('payPhaseEnter').style.display = 'none';
+    document.getElementById('payPhaseWait').style.display  = 'block';
+    setStep(2);
+    startPolling(currentTxRef, phone);
+  } catch (err) {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    setStatus('payStatus1','error', err.message || 'Could not send STK push. Try again.');
+  }
+}
+
+function cancelWait() {
+  clearPollTimer();
+  resetPayFlow();
+}
+
+let pollCount = 0;
+function startPolling(txRef, phone) {
+  pollCount = 0;
+  clearPollTimer();
+  pollTimer = setInterval(async () => {
+    pollCount++;
+    if (pollCount > 40) { clearPollTimer(); cancelWait(); setStatus('payStatus1','error','Payment timed out. Please try again.'); return; }
+    try {
+      const res  = await fetch(`${SERVER_URL}/api/payment/status?checkoutId=${encodeURIComponent(txRef)}`);
+      const data = await res.json();
+      if (data.paid || data.status === 'completed') {
+        clearPollTimer();
+        setStep(3);
+        // Close modal after short delay and unlock
+        setTimeout(() => {
+          closeModal();
+          toast('🎉 Unlocked! All tips are now visible.');
+          setUnlocked(phone);
+        }, 1200);
+      }
+    } catch (_) { /* ignore network blip */ }
+  }, 3000);
+}
+function clearPollTimer() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+/* ═══════════════════════════════════════
+   SUBSCRIBER CHECK
+═══════════════════════════════════════ */
+async function checkSubscription() {
+  const raw = document.getElementById('checkPhone').value.trim();
+  if (!raw || raw.replace(/\D/g,'').length < 9) { setStatus('checkStatus','error','Enter a valid Safaricom number'); return; }
+  const phone = normalisePhone(raw);
+  const btn   = document.getElementById('checkBtn');
+  btn.disabled = true; btn.classList.add('loading');
+  setStatus('checkStatus','info','Checking your subscription…');
+
+  try {
+    const res  = await fetch(`${SERVER_URL}/pro/check/${phone}`);
+    const data = await res.json();
+    if (data.isPro) {
+      setStatus('checkStatus','success','✓ Active subscriber found! Unlocking…');
+      setTimeout(() => {
+        closeModal();
+        toast('🎉 Welcome back! Tips are now visible.');
+        setUnlocked(phone);
+      }, 1000);
+    } else {
+      setStatus('checkStatus','error','No active subscription found for this number.\nPay KES 49 to unlock today\'s tips.');
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+  } catch (err) {
+    setStatus('checkStatus','error','Could not verify. Check your connection and try again.');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+}
+
+/* ═══════════════════════════════════════
+   STEP UI
+═══════════════════════════════════════ */
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if (i < n)       el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+/* ═══════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════ */
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'pay-status' + (type ? ' '+type : '');
+  el.style.display = type ? 'block' : 'none';
+  el.textContent = msg;
+}
+function showLoading(on) {
+  document.getElementById('loadingState').style.display = on ? 'block' : 'none';
+  if (on) {
+    showEmpty(false);
+    ['upcomingHeader','resultsHeader'].forEach(id => document.getElementById(id).style.display='none');
+    ['upcomingList','resultsList'].forEach(id => document.getElementById(id).innerHTML='');
+    document.getElementById('resultsSummary').innerHTML='';
+  }
+}
+function showEmpty(on) { document.getElementById('emptyState').style.display = on ? 'block' : 'none'; }
+function showError(msg) {
+  document.getElementById('upcomingList').innerHTML = `<div class="state-box"><span class="state-icon">⚠</span><div class="state-title">Could not load tips</div><div class="state-sub">${esc(msg)}</div><button onclick="manualRefresh()" style="margin-top:14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.63rem;padding:7px 14px;border-radius:var(--r);cursor:pointer">↻ Try Again</button></div>`;
+  document.getElementById('upcomingHeader').style.display='flex';
+  document.getElementById('upcomingCount').textContent='!';
+}
+function toggleAi(id) {
+  const body = document.getElementById('ab-'+id);
+  const tog  = document.getElementById('at-'+id);
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  tog.classList.toggle('open', open);
+  tog.textContent = open ? '▲ hide' : '▼ show';
+}
+function manualRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  loadTips(currentDate).finally(() => btn.classList.remove('spinning'));
+  toast('Refreshing…');
+}
+function toggleTheme() {
+  const l = document.documentElement.classList.toggle('light');
+  document.getElementById('themeLabel').textContent = l ? 'Dark Mode' : 'Light Mode';
+  localStorage.setItem('footyai_theme', l ? 'light' : 'dark');
+}
+function marketIcon(tip) {
+  if (!tip) return '⚽';
+  const t = tip.toLowerCase();
+  if (t.includes('home win') || t==='1') return '🏠';
+  if (t.includes('away win') || t==='2') return '✈';
+  if (t.includes('draw')     || t==='x') return '⚖';
+  if (t.startsWith('1x'))    return '🛡';
+  if (t.startsWith('x2'))    return '🔄';
+  if (t.startsWith('12'))    return '⚡';
+  if (t.includes('btts') || t.startsWith('gg')) return '🔥';
+  if (t.startsWith('ng'))    return '🧤';
+  if (t.startsWith('over'))  return '📈';
+  if (t.startsWith('under')) return '📉';
+  return '⚽';
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('footyai_theme') === 'light') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeLabel').textContent = 'Dark Mode';
+  }
+  checkSessionUnlock();   // restore unlock from sessionStorage
+  buildDateTabs();
+  loadTips(currentDate);
+  tickTimer = setInterval(tick, TICK_MS);
+  autoTimer = setInterval(() => { if (currentDate === todayStr()) loadTips(currentDate); }, AUTO_REFRESH_MS);
+});
+</script>
+</body>
+</html>
