@@ -640,6 +640,43 @@ app.post('/api/tips/post', async (req, res) => {
     console.error('[Tips] ❌ Post error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
+});  
+// ═══════════════════════════════════════════════════════════
+// PATCH /api/tips/:dateKey/:tipId  — update result + score
+// Called by admin Results Checker after grading a tip
+// ═══════════════════════════════════════════════════════════
+app.patch('/api/tips/:dateKey/:tipId', async (req, res) => {
+  if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
+
+  const { dateKey, tipId } = req.params;
+  const { result, score, actualScore } = req.body;
+
+  // result must be 'win' or 'loss'
+  if (!result || !['win', 'loss'].includes(result.toLowerCase())) {
+    return res.status(400).json({ success: false, error: 'result must be "win" or "loss"' });
+  }
+
+  const updates = {
+    result:      result.toLowerCase(),
+    outcome:     result.toLowerCase(),       // alias
+    score:       score || actualScore || '', // final score string e.g. "2-1"
+    actualScore: score || actualScore || '',
+    gradedAt:    new Date().toISOString(),
+  };
+
+  try {
+    await db.ref(`publicTips/${dateKey}/${tipId}`).update(updates);
+    console.log(`[Tips] ✅ Graded: ${dateKey}/${tipId} → ${result} | score: ${score || '—'}`);
+    sendTelegram(
+      `✅ <b>RESULT GRADED</b>\n` +
+      `🎯 ${result.toUpperCase()} | Score: ${score || '—'}\n` +
+      `📅 ${dateKey}`
+    );
+    res.json({ success: true, tipId, dateKey, result: result.toLowerCase() });
+  } catch (err) {
+    console.error('[Tips] ❌ Grade error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 app.get('/api/tips/public', async (req, res) => {
   if (!db) return res.status(503).json({ success: false, error: 'Firebase not configured' });
