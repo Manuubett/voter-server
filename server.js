@@ -1006,7 +1006,8 @@ app.post('/api/grok/predict', async (req, res) => {
   if (!OPENROUTER_API_KEY) return res.status(503).json({ success: false, error: 'OPENROUTER_API_KEY not configured on server' });
 
   // FIX 2: Try primary model first, then fallback model
-  const models = [AI_MODEL, AI_MODEL_FALLBACK].filter(Boolean);
+ const AI_MODEL_TERTIARY = process.env.AI_MODEL_TERTIARY || '';
+const models = [AI_MODEL, AI_MODEL_FALLBACK, AI_MODEL_TERTIARY].filter(Boolean);
 
   for (let i = 0; i < models.length; i++) {
     const model     = models[i];
