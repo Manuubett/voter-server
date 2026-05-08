@@ -86,7 +86,7 @@ const API_KEY       = process.env.PAYNECTA_API_KEY;
 const USER_EMAIL    = process.env.PAYNECTA_EMAIL;
 const MERCHANT_CODE = process.env.PAYNECTA_CODE;
 const PRO_PRICE     = Number(process.env.PRO_PRICE_KES) || 49;
-const SERVER_BASE   = process.env.SERVER_URL || 'https://your-app.onrender.com';
+const SERVER_BASE   = process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com';
 const PAYNECTA_URL  = 'https://paynecta.co.ke/api/v1';
 
 if (!API_KEY)       console.error('❌ PAYNECTA_API_KEY not set');
@@ -986,27 +986,18 @@ async function callOpenRouter(prompt, model, timeoutMs) {
     ],
   };
 
-  const controller = new AbortController();
-  const timer      = setTimeout(() => controller.abort(), timeoutMs);
+  const response = await axios.post(OPENROUTER_URL, payload, {
+    headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type':  'application/json',
+      'HTTP-Referer':  process.env.SERVER_URL || 'https://voter-server-fmfr.onrender.com',
+      'X-Title':       'Bett Officials',
+    },
+    timeout: timeoutMs,  // single timeout, no AbortController needed
+  });
 
-  try {
-    const response = await axios.post(OPENROUTER_URL, payload, {
-      headers: {
-        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type':  'application/json',
-        'HTTP-Referer':  process.env.SERVER_URL || 'https://your-app.onrender.com',
-        'X-Title':       'Bett Officials',
-      },
-      timeout: timeoutMs + 2000, // axios timeout slightly longer than abort
-      signal:  controller.signal,
-    });
-    clearTimeout(timer);
-    const text = response.data?.choices?.[0]?.message?.content || '';
-    return { text, model, status: response.status };
-  } catch (err) {
-    clearTimeout(timer);
-    throw err;
-  }
+  const text = response.data?.choices?.[0]?.message?.content || '';
+  return { text, model, status: response.status };
 }
 
 app.post('/api/grok/predict', async (req, res) => {
